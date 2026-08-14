@@ -150,8 +150,15 @@ def export_fixture(path: Path = FIXTURE, max_chunks: int | None = None) -> None:
         )
 
 
-def load_fixture(path: Path = FIXTURE, batch_size: int = 256) -> None:
-    """Recreate the corpus in Postgres, re-embedding chunk text as it goes."""
+def load_fixture(path: Path = FIXTURE, batch_size: int = 256, force: bool = False) -> None:
+    """Recreate the corpus in Postgres, re-embedding chunk text as it goes.
+
+    This TRUNCATEs first, which is correct in CI -- the database is empty and the
+    point is a byte-identical starting state. It is destructive anywhere else,
+    and the fixture is a deliberately *smaller* sample than a real ingest, so
+    running it against a working corpus silently trades hours of OCR for a
+    subset. Refuse when the target holds more documents than the fixture does.
+    """
     if not path.exists():
         raise SystemExit(f"No fixture at {path}. Run: python scripts/fixture.py export")
 
@@ -161,6 +168,20 @@ def load_fixture(path: Path = FIXTURE, batch_size: int = 256) -> None:
             record = json.loads(line)
             kind = record.pop("type")
             (documents if kind == "document" else chunks).append(record)
+
+    with connect() as conn:
+        existing = conn.execute(
+            "SELECT count(*) AS n FROM documents WHERE parse_status = 'parsed'"
+        ).fetchone()["n"]
+
+    if existing > len(documents) and not force:
+        raise SystemExit(
+            f"Refusing to load: {settings.db_url.rsplit('/', 1)[-1]} already holds "
+            f"{existing} parsed documents and this fixture has only {len(documents)}.\n"
+            f"Loading would TRUNCATE the larger corpus and replace it with the sample.\n"
+            f"  to evaluate the fixture, point SIFT_DB_URL at a scratch database\n"
+            f"  to do it anyway, pass --force"
+        )
 
     print(f"Loading {len(documents)} documents and {len(chunks)} chunks")
     print(f"Re-embedding with {settings.embedding_model}...")
@@ -204,7 +225,7 @@ def main() -> int:
             max_chunks = int(sys.argv[sys.argv.index("--max-chunks") + 1])
         export_fixture(max_chunks=max_chunks)
     else:
-        load_fixture()
+        load_fixture(force="--force" in sys.argv)
     return 0
 
 
