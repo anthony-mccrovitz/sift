@@ -1,0 +1,7 @@
+# Documents that did not ingest cleanly
+# 3 documents, grouped by failure kind, most common first.
+
+## download  (3 documents)
+  gaoreports-nsiad-94-182br                          [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-hehs-94-221                           [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-rced-94-121                           [-] download: NotAPdf: no PDF rendition published for this package (soft 404)

@@ -1,0 +1,51 @@
+# Quality gates. CI fails when a metric drops below its floor.
+#
+# Two tiers, because they cost very different amounts to run:
+#
+#   retrieval  Deterministic. No LLM, no API key, no money, ~10 seconds.
+#              Runs on EVERY pull request, including forks.
+#   ragas      Needs an LLM judge, so it costs money and needs a secret.
+#              Runs on pull requests from this repo and on main.
+#
+# Splitting them matters. If the only gate needs a paid key, then any PR from a
+# fork silently skips it, and "our CI enforces answer quality" becomes untrue
+# in exactly the case where you most want it enforced.
+#
+# Thresholds are set slightly below current measured performance -- tight enough
+# to catch a real regression, loose enough that ordinary LLM nondeterminism does
+# not turn CI red for no reason. Update them, with the measurement, when the
+# system genuinely improves.
+
+retrieval:
+  # Fraction of answerable questions where at least one gold document appears
+  # in the top-k retrieved passages. The single most important retrieval number:
+  # if the right document never arrives, no amount of prompting saves the answer.
+  recall_at_k: 0.85
+  k: 6
+
+  # Mean reciprocal rank of the first gold document.
+  mrr: 0.60
+
+  # Fraction of emitted citations that point at a passage actually retrieved.
+  # Anything below 1.0 means the model invented a source, which is the one
+  # failure this project exists to prevent. There is no acceptable slack here.
+  citation_validity: 1.0
+
+  # Fraction of `unanswerable` questions where the system correctly declined.
+  abstention_rate: 0.75
+
+  # Guard against the opposite failure: abstaining on questions that ARE
+  # answerable. Without this, a system that answers "I don't know" to
+  # everything scores a perfect abstention rate.
+  false_abstention_rate: 0.15  # maximum, not minimum
+
+ragas:
+  faithfulness: 0.85       # answer is supported by retrieved context
+  answer_relevancy: 0.80   # answer actually addresses the question
+  context_precision: 0.70  # retrieved context is on-topic
+  context_recall: 0.70     # retrieved context covers the ground truth
+
+# Latency budget, measured over the eval run.
+latency:
+  retrieval_p50_ms: 250
+  retrieval_p95_ms: 800

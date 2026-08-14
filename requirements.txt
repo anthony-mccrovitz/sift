@@ -1,0 +1,53 @@
+# --- Parsing -----------------------------------------------------------------
+# unstructured[pdf] pulls pdfminer.six, unstructured-inference and pytesseract.
+# It needs two system binaries that pip cannot install for you:
+#   macOS:  brew install tesseract poppler
+#   Debian: apt-get install -y tesseract-ocr poppler-utils
+unstructured[pdf]==0.25.2
+# NOT pulled in by unstructured[pdf] despite being required for OCR. Without it
+# hi_res/ocr_only silently return nothing on scanned pages instead of failing.
+pytesseract==0.3.13
+
+# --- Embeddings (local, no API key, reproducible in CI) -----------------------
+sentence-transformers==5.7.0
+
+# --- Storage / retrieval ------------------------------------------------------
+psycopg[binary]==3.3.4
+pgvector==0.5.0
+rank-bm25==0.2.2
+
+# --- API ----------------------------------------------------------------------
+fastapi==0.141.1
+uvicorn[standard]==0.41.0
+pydantic==2.13.1
+pydantic-settings==2.13.0
+
+# --- LLM providers (pluggable; install both, pick one at runtime) -------------
+anthropic==0.122.0
+openai==3.0.0
+
+# --- Misc ---------------------------------------------------------------------
+httpx==0.28.1
+PyYAML==6.0.3
+tqdm==4.68.0
+tenacity==9.1.2
+
+# --- Evaluation ---------------------------------------------------------------
+ragas==0.4.3
+datasets==5.0.1
+# RAGAS reaches the LLM through LangChain wrappers, so the judge needs these
+# regardless of which provider you pick.
+#
+# These are pinned to the 0.3 line on purpose, and the pins are load-bearing.
+# ragas 0.4.3 does `from langchain_community.chat_models.vertexai import
+# ChatVertexAI` at import time, and langchain-community 0.4 deleted that module.
+# Installing the current langchain releases therefore makes `import ragas` raise
+# ModuleNotFoundError -- the eval gate does not fail, it fails to start.
+# langchain-community 0.3 in turn requires langchain-core <1.0, which forces the
+# whole langchain family back to 0.3. Do not bump one of these without bumping
+# all of them, and re-run `python -c "import ragas"` afterwards.
+langchain-community==0.3.31
+langchain-core==0.3.86
+langchain-anthropic==0.3.22
+langchain-openai==0.3.35
+langchain-huggingface==0.3.1

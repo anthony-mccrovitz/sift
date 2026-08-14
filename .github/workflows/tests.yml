@@ -1,0 +1,36 @@
+name: Unit tests
+
+# Fast feedback on the pure logic: routing, lexical query construction, rank
+# fusion, citation validation, parse-strategy selection. No database, no model
+# download, no network -- this job should finish in well under a minute.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test dependencies
+        # Deliberately minimal: no torch, no unstructured, no sentence-transformers.
+        # numpy/psycopg/pgvector are needed only because search.py imports db.py
+        # and embed.py at module scope -- the heavy model and LLM SDKs are all
+        # imported lazily inside functions, so they never load here.
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest==8.4.2 "pydantic==2.13.1" "pydantic-settings==2.13.0" \
+                      "PyYAML==6.0.3" "tenacity==9.1.2" numpy \
+                      "psycopg[binary]==3.3.4" "pgvector==0.5.0"
+
+      - name: Run tests
+        run: python -m pytest tests/ -q

@@ -1,0 +1,48 @@
+# Sift runs Postgres+pgvector in Docker and (by default) the Python code on your
+# host. That is deliberate: during development you want to edit a file and rerun
+# in one second, not rebuild an image.
+#
+#   docker compose up -d                 # just the database
+#   docker compose --profile app up -d   # database + API in a container
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: sift-db
+    environment:
+      POSTGRES_USER: sift
+      POSTGRES_PASSWORD: sift
+      POSTGRES_DB: sift
+    ports:
+      - "5433:5432" # 5433 on the host so we never collide with a local Postgres
+    volumes:
+      - sift_pgdata:/var/lib/postgresql/data
+      # Anything in this directory runs once, on first boot of an empty volume.
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sift -d sift"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    profiles: ["app"] # only starts with --profile app
+    build: .
+    container_name: sift-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Inside the compose network the database is reachable as "db:5432".
+      SIFT_DB_URL: postgresql://sift:sift@db:5432/sift
+      SIFT_LLM_PROVIDER: ${SIFT_LLM_PROVIDER:-anthropic}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - hf_cache:/root/.cache/huggingface # don't re-download the embedding model
+
+volumes:
+  sift_pgdata:
+  hf_cache:

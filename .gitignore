@@ -1,0 +1,32 @@
+# data: the PDFs are downloadable, not committable (~1 GB)
+data/raw/
+
+# Two files under data/ are deliberately NOT ignored, because they are outputs
+# worth reading rather than build artifacts:
+#
+#   manifest.json           the exact 500 documents this corpus is made of.
+#                           Committing it is what makes `python -m sift.ingest`
+#                           reproducible -- rebuild the manifest from the live
+#                           APIs six months from now and you get a different
+#                           corpus, so the metrics would not be comparable.
+#   failed_documents.log    what did not ingest, and why. The README points at
+#                           this file on purpose; a pipeline that reports its
+#                           own failure modes is the honest version.
+
+# local run logs (ingest output, pip output)
+logs/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# secrets
+.env
+
+# models
+.cache/

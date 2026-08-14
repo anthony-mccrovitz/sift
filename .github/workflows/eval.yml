@@ -1,0 +1,196 @@
+name: Evaluation Gate
+
+# The point of this workflow: a pull request that degrades answer quality fails
+# to merge, the same way one that breaks a unit test does.
+#
+# Two gates, split by what they cost to run:
+#
+#   retrieval-gate  Deterministic, no API key, ~3 minutes. Runs on EVERY pull
+#                   request including forks. This is the gate that always holds.
+#   ragas-gate      LLM-judged, costs money, needs a repository secret. Runs on
+#                   pull requests from this repo and on pushes to main.
+#
+# If the only gate needed a paid key, forked pull requests would silently skip
+# it, and the claim "CI enforces answer quality" would be false in exactly the
+# case where you least control the code.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: eval-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SIFT_DB_URL: postgresql://sift:sift@localhost:5432/sift
+
+jobs:
+  # -------------------------------------------------------------------------
+  retrieval-gate:
+    name: Retrieval gate (no API key)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sift
+          POSTGRES_PASSWORD: sift
+          POSTGRES_DB: sift
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sift -d sift"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Cache the embedding model
+        # ~130MB from Hugging Face. Without this every run re-downloads it, which
+        # is slow and occasionally rate-limited.
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('sift/config.py') }}
+
+      - name: Install dependencies
+        # Only what retrieval needs. Skipping the parsing stack (unstructured,
+        # onnxruntime, torch vision deps) takes this job from ~8 min to ~3.
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            "sentence-transformers==5.7.0" "psycopg[binary]==3.3.4" "pgvector==0.5.0" \
+            "pydantic==2.13.1" "pydantic-settings==2.13.0" "PyYAML==6.0.3" \
+            "tenacity==9.1.2" "anthropic==0.122.0" "openai==3.0.0"
+
+      - name: Apply schema
+        run: psql "$SIFT_DB_URL" -f sql/001_schema.sql
+
+      - name: Load the frozen evaluation corpus
+        # The corpus is a committed fixture, so this gate measures the code in
+        # the pull request -- not whatever the Federal Register published today.
+        run: python scripts/fixture.py load
+
+      - name: Run retrieval evaluation
+        run: python -m eval.retrieval_eval --output benchmarks/latest_retrieval.json
+
+      - name: Upload metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrieval-metrics
+          path: benchmarks/latest_retrieval.json
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### Retrieval gate"
+            echo '```json'
+            python -c "import json;print(json.dumps(json.load(open('benchmarks/latest_retrieval.json'))['metrics'],indent=2))"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # -------------------------------------------------------------------------
+  ragas-gate:
+    name: RAGAS gate (LLM judge)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: retrieval-gate
+    # Forked pull requests cannot read secrets, so skip rather than fail
+    # confusingly. The retrieval gate above still applies to them.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sift
+          POSTGRES_PASSWORD: sift
+          POSTGRES_DB: sift
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sift -d sift"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('sift/config.py') }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            "sentence-transformers==5.7.0" "psycopg[binary]==3.3.4" "pgvector==0.5.0" \
+            "pydantic==2.13.1" "pydantic-settings==2.13.0" "PyYAML==6.0.3" \
+            "tenacity==9.1.2" "anthropic==0.122.0" "openai==3.0.0" \
+            "ragas==0.4.3" "langchain-community==0.3.31" "langchain-core==0.3.86" \
+            "langchain-anthropic==0.3.22" "langchain-openai==0.3.35" \
+            "langchain-huggingface==0.3.1"
+
+      - name: Verify the judge actually imports
+        # ragas 0.4.3 imports a langchain-community module that the 0.4 line
+        # deleted, so a bad pin here fails at import time -- which would show up
+        # as a green "skipped" gate rather than a red one. Fail loudly instead.
+        run: python -c "import ragas; print('ragas', ragas.__version__)"
+
+      - name: Apply schema
+        run: psql "$SIFT_DB_URL" -f sql/001_schema.sql
+
+      - name: Load the frozen evaluation corpus
+        run: python scripts/fixture.py load
+
+      - name: Check for an API key
+        id: key
+        run: |
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ] || [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No LLM key configured; skipping the RAGAS gate. \
+            Add ANTHROPIC_API_KEY or OPENAI_API_KEY to repository secrets to enable it."
+          fi
+
+      - name: Run RAGAS evaluation
+        if: steps.key.outputs.present == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SIFT_LLM_PROVIDER: ${{ vars.SIFT_LLM_PROVIDER || 'anthropic' }}
+        run: python -m eval.ragas_eval --output benchmarks/latest_ragas.json
+
+      - name: Upload metrics
+        if: always() && steps.key.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragas-metrics
+          path: benchmarks/latest_ragas.json
+
+      - name: Summarise
+        if: always() && steps.key.outputs.present == 'true'
+        run: |
+          {
+            echo "### RAGAS gate"
+            echo '```json'
+            python -c "import json;print(json.dumps(json.load(open('benchmarks/latest_ragas.json'))['scores'],indent=2))"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,345 @@
+# Sift evaluation set
+#
+# Every question here was written against passages actually present in the
+# corpus -- open the cited document and page and you will find the answer. That
+# is the only property that makes an eval set worth having: if the ground truth
+# is invented, the metrics measure nothing.
+#
+# Fields
+#   id            stable identifier; never renumber, CI compares across runs
+#   question      what gets sent to POST /query
+#   ground_truth  a correct answer, used by RAGAS context_recall / correctness
+#   gold_doc_ids  documents that genuinely contain the answer -> retrieval recall
+#   category      what this question is testing (see below)
+#   notes         why the question is here, when it is not obvious
+#
+# Categories
+#   factual       plain retrieval + synthesis
+#   filtered      should trigger a metadata filter in the router
+#   identifier    exact document/identifier lookup, lexical retrieval should win
+#   quantitative  a specific number must survive retrieval and synthesis intact
+#   ocr           the answer lives in a scanned document; tests OCR tolerance
+#   unanswerable  NOT in the corpus -- the system must abstain, not invent
+#
+# ---------------------------------------------------------------------------
+# NOTE ON PROVENANCE: this file was drafted mechanically from real retrieved
+# passages and then needs a human pass. Read every ground_truth against its
+# source document before trusting a number that comes out of it. An eval set
+# nobody has read is a liability, because it will confidently gate your CI on
+# assertions that were never checked.
+# ---------------------------------------------------------------------------
+
+questions:
+  # --- GAO: drinking water (rced-97-123) --------------------------------
+  - id: q001
+    question: What law requires the EPA to establish drinking water standards, and when was it enacted?
+    ground_truth: >-
+      The Safe Drinking Water Act, enacted in 1974, requires the Environmental
+      Protection Agency to establish drinking water standards for the nation's
+      community water systems.
+    gold_doc_ids: [gaoreports-rced-97-123]
+    category: factual
+
+  - id: q002
+    question: Approximately how many community water systems does the Safe Drinking Water Act cover?
+    ground_truth: Nearly 56,000 community water systems.
+    gold_doc_ids: [gaoreports-rced-97-123]
+    category: quantitative
+
+  - id: q003
+    question: What was the most common drinking water contamination problem GAO found in the six states it reviewed?
+    ground_truth: >-
+      Contamination with total coliform bacteria was by far the most common
+      problem in the six states GAO reviewed.
+    gold_doc_ids: [gaoreports-rced-97-123]
+    category: factual
+
+  - id: q004
+    question: Why is less known about the quality of water from private wells than from community water systems?
+    ground_truth: >-
+      Water quality is not routinely monitored at private wells the way it is at
+      community water systems, so the available data for private wells are
+      limited and come from special studies and voluntary or locally required tests.
+    gold_doc_ids: [gaoreports-rced-97-123]
+    category: factual
+
+  - id: q005
+    question: For how many regulated contaminants did community water systems in the six states GAO reviewed exceed the standard at least once?
+    ground_truth: >-
+      Community water systems in the six states exceeded the standard at least
+      once for 25 of the regulated contaminants during fiscal years 1993 through 1996.
+    gold_doc_ids: [gaoreports-rced-97-123]
+    category: quantitative
+
+  # --- GAO: export controls (nsiad-95-82) -------------------------------
+  - id: q006
+    question: What weaknesses did GAO identify in controls over missile-related technology exports to China?
+    ground_truth: >-
+      GAO found that some controls over missile-related technology exports to
+      China were weak, including gaps in how export licences were reviewed and
+      enforced.
+    gold_doc_ids: [gaoreports-nsiad-95-82]
+    category: factual
+
+  - id: q007
+    question: What penalties do violators of U.S. export laws face?
+    ground_truth: Violators of U.S. export laws are subject to criminal and civil penalties.
+    gold_doc_ids: [gaoreports-nsiad-95-82]
+    category: factual
+
+  - id: q008
+    question: How does the MTCR Annex categorise controlled items?
+    ground_truth: The MTCR Annex divides controlled items into two categories, Category I and Category II.
+    gold_doc_ids: [gaoreports-nsiad-95-82]
+    category: factual
+
+  - id: q009
+    question: What did GAO report about export controls between 1994 and 1996?
+    ground_truth: >-
+      GAO reported in April 1995 that some controls over missile-related
+      technology exports to China were weak.
+    gold_doc_ids: [gaoreports-nsiad-95-82]
+    category: filtered
+    notes: Should trigger a year-range filter plus source=gao in the router.
+
+  # --- GAO: space station (t-nsiad-96-210) ------------------------------
+  - id: q010
+    question: What risks did GAO identify to the space station program's cost and schedule?
+    ground_truth: >-
+      GAO reported numerous major and minor matters that continued to threaten
+      the station program's ability to stay within cost limits and on schedule,
+      and warned that in a worst case these issues could threaten the future of
+      the program if they produced significantly higher cost estimates and
+      substantial schedule delays.
+    gold_doc_ids: [gaoreports-t-nsiad-96-210]
+    category: factual
+
+  - id: q011
+    question: How does GAO define cost variances and schedule variances for the space station program?
+    ground_truth: >-
+      Cost variances represent the difference between actual costs to complete
+      specific work steps and the amounts budgeted for that work. Schedule
+      variances are the dollar value of the difference between the budgeted cost
+      of work planned and work completed. They are not additive.
+    gold_doc_ids: [gaoreports-t-nsiad-96-210]
+    category: factual
+
+  - id: q012
+    question: What did GAO say about NASA and contractor commitments on the space station?
+    ground_truth: >-
+      GAO noted that commitments were made by NASA and its contractors to
+      resolve or complete actions on the issues described, and that follow-up
+      was needed to ensure promised corrective actions occurred.
+    gold_doc_ids: [gaoreports-t-nsiad-96-210]
+    category: factual
+
+  # --- Federal Register: wildland fire differential pay (fr-2026-16687) --
+  - id: q013
+    question: Under what statute is hazardous duty pay authorised for General Schedule employees?
+    ground_truth: >-
+      Hazardous duty pay (HDP) is authorised by 5 U.S.C. 5545(d) and 5 CFR part
+      550, subpart I, for GS employees performing duties approved by OPM.
+    gold_doc_ids: [fr-2026-16687]
+    category: factual
+
+  - id: q014
+    question: Does OPM extend the wildland fire pay differential to pre-ignition preparation activities?
+    ground_truth: >-
+      No. OPM does not extend the differential to pre-ignition preparation
+      activities, because the hazards justifying coverage are associated with
+      the active fire environment and its immediate aftermath on the fireline,
+      not preparatory work performed before ignition.
+    gold_doc_ids: [fr-2026-16687]
+    category: factual
+
+  - id: q015
+    question: How many comments did OPM receive recommending that the final rule include employees paid under the GW pay plan?
+    ground_truth: OPM received 7 comments from employees making that recommendation.
+    gold_doc_ids: [fr-2026-16687]
+    category: quantitative
+
+  - id: q016
+    question: What pay enhancements for federal firefighters did a commenter say had already been provided?
+    ground_truth: >-
+      A commenter cited a temporary $20,000 pay increase, a permanent pay
+      increase, creation of the 0456 occupational series, and the GW pay scale.
+    gold_doc_ids: [fr-2026-16687]
+    category: quantitative
+
+  - id: q017
+    question: What change did the rule make to references to the General Accounting Office?
+    ground_truth: >-
+      In 5 CFR 10.1 the words "General Accounting" are removed and replaced with
+      "Government Accountability".
+    gold_doc_ids: [fr-2026-16687]
+    category: factual
+
+  # --- NIST cybersecurity framework -------------------------------------
+  - id: q018
+    question: What did NIST publish about the Cybersecurity Framework 2.0 for small businesses?
+    ground_truth: >-
+      NIST published SP 1300, a NIST Cybersecurity Framework 2.0 Small Business
+      Quick-Start Guide.
+    gold_doc_ids: [nist-sp-1300-final]
+    category: filtered
+    notes: Should set source=nist in the router.
+
+  - id: q019
+    question: What is NIST SP 1271?
+    ground_truth: >-
+      NIST SP 1271 is "Getting Started with the NIST Cybersecurity Framework: A
+      Quick Start Guide".
+    gold_doc_ids: [nist-sp-1271-final]
+    category: identifier
+
+  - id: q020
+    question: What NIST publication covers federal cybersecurity role-based training?
+    ground_truth: >-
+      NIST SP 1288, "Federal Cybersecurity Role-Based Training Approaches".
+    gold_doc_ids: [nist-sp-1288-final]
+    category: filtered
+
+  - id: q021
+    question: What guidance has NIST issued on the Cybersecurity Framework 2.0?
+    ground_truth: >-
+      NIST issued several CSF 2.0 resources, including SP 1299 (Resource and
+      Overview Guide), SP 1300 (Small Business Quick-Start Guide), SP 1301 and
+      SP 1302 (Quick-Start Guides).
+    gold_doc_ids: [nist-sp-1299-final, nist-sp-1300-final, nist-sp-1301-final, nist-sp-1302-final]
+    category: filtered
+
+  # --- NASA, scanned (OCR tolerance) ------------------------------------
+  - id: q022
+    question: What are the two principal types of unsteady phenomena affecting launch vehicles?
+    ground_truth: >-
+      Self-excited phenomena and externally excited phenomena.
+    gold_doc_ids: [nasa-19670021251]
+    category: ocr
+    notes: >-
+      From a 1967 microfiche scan. Even after hi_res OCR the reading order is
+      partly scrambled, so this tests whether retrieval and synthesis survive
+      degraded text. Expect this to be among the weakest questions -- that is
+      the point of keeping it.
+
+  - id: q023
+    question: What did X-15 flight tests reveal about panel flutter?
+    ground_truth: >-
+      Tests of X-15 corrugation-stiffened panels revealed that panel flutter was
+      very sudden and very severe, and that it did not stop unless conditions
+      changed; it is a fatigue problem rather than an immediately explosive one.
+    gold_doc_ids: [nasa-19670021251]
+    category: ocr
+
+  - id: q024
+    question: What causes buffeting on a launch vehicle?
+    ground_truth: >-
+      Buffeting is pressure oscillation caused by separated flow over interstage
+      areas, which can cause intensive fluctuating pressures and consequently
+      severe structural loads.
+    gold_doc_ids: [nasa-19670021251]
+    category: ocr
+
+  - id: q025
+    question: What is engine-generated noise research directed toward?
+    ground_truth: >-
+      Research on engine-generated acoustics has been directed toward
+      determining the predominant noise generation mechanisms in
+      high-temperature rocket exhaust flows.
+    gold_doc_ids: [nasa-19670021251]
+    category: ocr
+
+  # --- routing / identifier ---------------------------------------------
+  - id: q026
+    question: GAO/NSIAD-95-82
+    ground_truth: >-
+      GAO/NSIAD-95-82 is "Export Controls: Some Controls Over Missile-Related
+      Technology Exports To China Are Weak", issued April 1995.
+    gold_doc_ids: [gaoreports-nsiad-95-82]
+    category: identifier
+    notes: Bare identifier; the router should choose keyword-only retrieval.
+
+  - id: q027
+    question: What NASA research was conducted at MSFC on aerodynamics?
+    ground_truth: >-
+      NASA's Marshall Space Flight Center conducted aerodynamics research
+      covering areas such as unsteady aerodynamics and launch vehicle flow fields.
+    gold_doc_ids: [nasa-19660029197]
+    category: filtered
+
+  - id: q028
+    question: What is the subject of NASA's bibliography of NACA reports on air inlets?
+    ground_truth: >-
+      It is a bibliography of NACA and other reports on air inlets and inlet
+      flow, compiling references on inlet aerodynamics.
+    gold_doc_ids: [nasa-19930085495]
+    category: identifier
+
+  - id: q029
+    question: What financial issues did GAO raise about the District of Columbia Courts?
+    ground_truth: >-
+      GAO testified on financial-related issues for the District of Columbia
+      Courts, addressing their financial management and accountability.
+    gold_doc_ids: [gaoreports-t-aimd-ogc-99-176]
+    category: factual
+
+  - id: q030
+    question: What management challenges did GAO identify at the Department of Agriculture?
+    ground_truth: >-
+      GAO identified major management challenges and program risks at the
+      Department of Agriculture, and separately reported that problems continued
+      to hinder timely progress on USDA issues.
+    gold_doc_ids: [gaoreports-ocg-99-2, gaoreports-rced-99-38]
+    category: factual
+
+  - id: q031
+    question: What issues did recent market developments raise for the U.S. Export-Import Bank?
+    ground_truth: >-
+      GAO testified on issues raised by recent market developments for the U.S.
+      Export-Import Bank.
+    gold_doc_ids: [gaoreports-t-nsiad-99-23]
+    category: factual
+
+  - id: q032
+    question: What airworthiness directives were issued for Air Tractor airplanes?
+    ground_truth: >-
+      The Federal Register published an airworthiness directive covering Air
+      Tractor, Inc. airplanes.
+    gold_doc_ids: [fr-2026-16672]
+    category: factual
+
+  # --- abstention: the answer is NOT in the corpus ----------------------
+  # These carry the most weight. A RAG system that never says "I don't know"
+  # is not usable in a government setting, and abstention is the one behaviour
+  # that no amount of retrieval tuning produces on its own.
+  - id: q033
+    question: What was NASA's total budget in fiscal year 2023?
+    ground_truth: >-
+      The provided documents do not contain NASA's fiscal year 2023 budget.
+    gold_doc_ids: []
+    category: unanswerable
+
+  - id: q034
+    question: What is the current price of Bitcoin?
+    ground_truth: >-
+      The provided documents do not contain any information about Bitcoin or
+      cryptocurrency prices.
+    gold_doc_ids: []
+    category: unanswerable
+
+  - id: q035
+    question: Who is the current Secretary of Defense?
+    ground_truth: >-
+      The provided documents do not identify the current Secretary of Defense.
+    gold_doc_ids: []
+    category: unanswerable
+
+  - id: q036
+    question: What did GAO conclude about the Affordable Care Act's insurance exchanges?
+    ground_truth: >-
+      The provided documents do not contain GAO findings about Affordable Care
+      Act insurance exchanges.
+    gold_doc_ids: []
+    category: unanswerable
+    notes: >-
+      Plausible-sounding and on-topic for GAO, which is exactly why it is here.
+      A system that pattern-matches "GAO + policy topic" will invent an answer.
