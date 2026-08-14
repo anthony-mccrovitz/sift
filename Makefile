@@ -1,4 +1,4 @@
-.PHONY: help db up down ingest smoke api test eval ragas fixture bench clean
+.PHONY: help db up down ingest resume smoke api test eval ragas fixture bench clean
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -16,8 +16,11 @@ reset: ## stop and DESTROY the database volume
 smoke: db ## ingest 25 documents -- use this while developing
 	python -m sift.ingest --limit 25
 
-ingest: db ## ingest the full 500-document corpus
+ingest: db ## ingest the full 500-document corpus (several hours, mostly OCR)
 	python -m sift.ingest --limit 500 --workers 6
+
+resume: db ## continue an interrupted ingest, skipping what already parsed
+	python -m sift.ingest --limit 500 --workers 6 --resume
 
 api: ## run the API at http://localhost:8000/docs
 	uvicorn sift.api:app --reload

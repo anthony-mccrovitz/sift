@@ -98,6 +98,7 @@ def run_ingest(
     workers: int | None = None,
     refresh_manifest: bool = False,
     skip_download: bool = False,
+    resume: bool = False,
 ) -> dict[str, Any]:
     workers = workers or settings.ingest_workers
     started = time.monotonic()
@@ -131,9 +132,38 @@ def run_ingest(
             ).fetchall()
         }
 
-    to_parse = [d for d in docs if d.doc_id not in already_failed]
+        # --resume: skip documents already parsed in an earlier run.
+        #
+        # A full ingest of this corpus takes hours, most of it OCR, and anything
+        # that interrupts it -- a laptop sleeping, the database container
+        # stopping -- otherwise costs the whole run. Parse results are already
+        # durable in Postgres, so the only thing missing was permission to trust
+        # them.
+        #
+        # 'empty' counts as done: it means the document parsed but yielded no
+        # usable text, which re-running the identical parse will not change.
+        # Genuine failures are NOT skipped -- those are worth retrying, since
+        # they include transient problems.
+        #
+        # This is opt-in rather than the default because after changing chunking
+        # or the parse strategy you want every document reprocessed, and a
+        # resume that silently kept stale chunks would be the worse bug.
+        done: set[str] = set()
+        if resume:
+            done = {
+                row["doc_id"]
+                for row in conn.execute(
+                    "SELECT doc_id FROM documents WHERE parse_status IN ('parsed', 'empty')"
+                ).fetchall()
+            }
+
+    skip = already_failed | done
+    to_parse = [d for d in docs if d.doc_id not in skip]
     if already_failed:
-        print(f"Skipping {len(already_failed)} documents that failed to download.\n")
+        print(f"Skipping {len(already_failed)} documents that failed to download.")
+    if done:
+        print(f"Resuming: {len(done)} documents already parsed, {len(to_parse)} to go.")
+    print()
 
     print(f"Parsing and embedding ({workers} workers)...")
     stats = {"parsed": 0, "failed": len(already_failed), "empty": 0, "chunks": 0}
@@ -195,17 +225,39 @@ def run_ingest(
                 )
 
     # --- 4. the failure log is a deliverable, not a side effect ----------
-    write_failure_log(failures)
+    # Sourced from the database rather than from this run's results, because a
+    # resumed run only sees the documents it processed. Reading the corpus back
+    # out means the log describes the corpus as it now stands, which is what the
+    # README claims it is, regardless of how many runs it took to build.
+    with connect() as conn:
+        corpus_failures = [
+            dict(row)
+            for row in conn.execute(
+                "SELECT doc_id, source, parse_status, parse_strategy, parse_error"
+                " FROM documents WHERE parse_status NOT IN ('parsed')"
+                " ORDER BY parse_status, doc_id"
+            ).fetchall()
+        ]
+        totals = {
+            row["parse_status"]: row["n"]
+            for row in conn.execute(
+                "SELECT parse_status, count(*) AS n FROM documents GROUP BY parse_status"
+            ).fetchall()
+        }
+        total_chunks = conn.execute("SELECT count(*) AS n FROM chunks").fetchone()["n"]
+
+    write_failure_log(corpus_failures)
 
     elapsed = time.monotonic() - started
     print(f"\n{'='*74}")
-    print(f"Ingest complete in {elapsed/60:.1f} min")
-    print(f"  parsed : {stats['parsed']}")
-    print(f"  empty  : {stats['empty']}   (parsed, but no usable text -- see failure log)")
-    print(f"  failed : {stats['failed']}")
-    print(f"  chunks : {stats['chunks']}")
-    if failures:
-        print(f"\n  {settings.failed_log} lists every one, with the reason.")
+    print(f"Ingest finished in {elapsed/60:.1f} min")
+    print(f"  this run : {stats['parsed']} parsed, {stats['empty']} empty, "
+          f"{stats['failed']} failed, {stats['chunks']} chunks")
+    print(f"  corpus   : {totals.get('parsed', 0)} parsed, {totals.get('empty', 0)} empty, "
+          f"{totals.get('failed', 0)} failed, {totals.get('pending', 0)} pending, "
+          f"{total_chunks} chunks")
+    if corpus_failures:
+        print(f"\n  {settings.failed_log} lists all {len(corpus_failures)}, with reasons.")
     print("=" * 74)
 
     with connect() as conn:
@@ -216,7 +268,7 @@ def run_ingest(
                 f"avg {row['avg_parse_seconds'] or 0:>6}s, {row['scanned'] or 0} scanned"
             )
 
-    return {"stats": stats, "seconds": elapsed, "failures": failures}
+    return {"stats": stats, "seconds": elapsed, "failures": corpus_failures}
 
 
 def write_failure_log(failures: list[dict[str, Any]]) -> None:

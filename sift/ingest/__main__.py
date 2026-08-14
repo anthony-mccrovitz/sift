@@ -25,6 +25,11 @@ def main() -> int:
         action="store_true",
         help="parse what is already in data/raw (use when tuning chunking)",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="skip documents already parsed; use to continue an interrupted run",
+    )
     args = parser.parse_args()
 
     health = healthcheck()
@@ -38,6 +43,7 @@ def main() -> int:
         workers=args.workers,
         refresh_manifest=args.refresh_manifest,
         skip_download=args.skip_download,
+        resume=args.resume,
     )
     return 0
 
