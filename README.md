@@ -230,15 +230,39 @@ If the only gate needed a paid key, pull requests from forks would silently skip
 it — and "CI enforces answer quality" would be false in exactly the case where
 you least control the code. Tier 1 always runs.
 
-### The corpus is frozen
+### The corpus is frozen, and the gate runs on a sample of it
 
-CI loads a committed fixture (`eval/fixtures/corpus.jsonl.gz`, 287 KB) rather
-than re-downloading 500 government PDFs on every push. Embeddings are recomputed
-at load time from a pinned model rather than stored, keeping the fixture ~20×
-smaller and still deterministic.
+CI loads a committed fixture (`eval/fixtures/corpus.jsonl.gz`) rather than
+re-downloading 500 government PDFs on every push. Embeddings are recomputed at
+load time from a pinned model rather than stored, keeping the fixture ~20×
+smaller and still deterministic. A metric change is therefore caused by **the
+code in the pull request**, not by what the Federal Register published overnight.
 
-This means a metric change is caused by **the code in the pull request**, not by
-what the Federal Register published overnight.
+The fixture is a **sample**, not the whole corpus. Re-embedding all ~49k chunks
+on a 2-core runner takes around eight minutes, which is too slow to sit in front
+of every pull request, so the fixture is capped by a chunk budget. Two rules keep
+it a valid benchmark:
+
+- **Every gold document is included, budget or not.** Sampling a retrieval
+  benchmark fails in one direction specifically: drop the wrong document and
+  recall goes *up*, because the question quietly became unanswerable and stopped
+  counting. Gold documents are exempt for that reason.
+- **Distractors are added in sorted `doc_id` order**, so the fixture is
+  deterministic and successive runs compare like with like.
+
+Whatever the budget excludes is printed at export time. A fixture that quietly
+shrank is a benchmark that quietly got easier.
+
+Because of this, two different numbers are honest and they are not the same:
+
+| | corpus | what it is for |
+|---|---|---|
+| **Reported above** | full local corpus | what the system actually scores |
+| **CI gate** | budgeted sample | catching regressions, fast |
+
+Recall on the sample runs higher — fewer distractors to beat. The gate is
+calibrated against the sample it runs on; the headline number is the one that
+describes the system.
 
 ### Thresholds
 
