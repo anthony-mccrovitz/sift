@@ -219,6 +219,63 @@ on whether CI's disk cache was warm.
 
 ---
 
+## 10. The quality gate would have skipped green instead of failing red
+
+**Symptom.** None, locally. `make eval` passed, the unit tests passed, and CI
+was configured. `import ragas` raised `ModuleNotFoundError: No module named
+'langchain_community.chat_models.vertexai'`.
+
+**Cause.** `ragas==0.4.3` does `from langchain_community.chat_models.vertexai
+import ChatVertexAI` at module import time. `langchain-community` 0.4 deleted
+that module. Only `langchain-anthropic`, `langchain-openai` and
+`langchain-huggingface` were pinned, so pip resolved the unpinned
+`langchain-community` to 0.4.2 and the import died. Pinning it back to 0.3
+forces `langchain-core` <1.0, which drags the entire langchain family to the
+0.3 line — the pins are load-bearing as a set, not individually.
+
+**Handling.** Pin `langchain-community==0.3.31` and `langchain-core==0.3.86`
+alongside the provider packages, in `requirements.txt` *and* in the workflow's
+inline install list. Then add an explicit `python -c "import ragas"` step to CI.
+
+**Why it matters.** This is the worst failure in the project, and it is not a
+retrieval bug. The RAGAS job was guarded by "is an API key present?" — so a
+gate that could not even import would have reported **skipped**, which renders
+green. A quality gate that silently does not run is strictly worse than no
+gate, because it produces the belief that quality is being checked. The fix is
+one line of pinning; the lesson is that a gate must be able to fail loudly, and
+"skipped" must never be reachable through a broken dependency.
+
+---
+
+## 11. A six-hour ingest could not survive a laptop going to sleep
+
+**Symptom.** The full ingest died twice at 220/481 and 103/261 documents. Both
+times, restarting meant reparsing everything from zero.
+
+**Cause.** Two separate things. The first death was the Postgres container
+stopping when the machine slept overnight. The second was the parent process
+being terminated while the work itself was fine. The real problem was neither:
+`run_ingest` rebuilt its work list from the manifest every time, so it had no
+notion that 220 documents were already parsed and sitting in Postgres.
+
+**Handling.** Added `--resume`, which skips documents whose `parse_status` is
+`parsed` or `empty`. `empty` counts as done because rerunning an identical
+parse will not produce text that was not there the first time; genuine failures
+are still retried, since those include transient problems. Kept it opt-in —
+after changing chunking you want everything reprocessed, and a resume that
+silently kept stale chunks would be the worse bug. Also detached the long run
+from the controlling terminal and held idle sleep off for its lifetime.
+
+**Why it matters.** It forced a second fix that was not obvious. The failure log
+was written from the current run's results, so a resumed run would have
+described only the documents it happened to touch — while the README points at
+that file as a description of *the corpus*. The log and the closing summary now
+read back from the database. Any incremental pipeline has this bug shape: the
+moment work becomes resumable, every report derived from "what this run did"
+quietly starts lying.
+
+---
+
 ## Still open
 
 - **q017 retrieval miss.** "What change did the rule make to references to the

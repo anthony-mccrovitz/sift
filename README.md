@@ -105,7 +105,7 @@ documents from 2024" is a `WHERE` clause, not a separate filtered-search API.
 ## What broke and how I handled it
 
 The full account is in **[docs/FAILURE_MODES.md](docs/FAILURE_MODES.md)**. The
-three worth reading:
+four worth reading:
 
 ### `hi_res` produced the cleanest-looking and least readable text
 
@@ -146,6 +146,20 @@ the database. RRF score ties are common, Python's sort is stable, and
 `TRUNCATE`+reload renumbered the rows. Tie-breaking on `chunk_id` made it
 deterministic — and dropped the honest MRR to 0.9167, lower than the number I
 would otherwise have published and the first one that means anything.
+
+### The quality gate would have skipped green instead of failing red
+
+`ragas==0.4.3` imports a `langchain-community` module that the 0.4 line deleted,
+so `import ragas` raised `ModuleNotFoundError`. Only the provider packages were
+pinned, so pip resolved `langchain-community` to 0.4.2 and the eval could not
+start.
+
+The bug is not that it broke — it is *how* it would have failed. The RAGAS job
+is guarded by "is an API key present?", so a gate that cannot import reports
+**skipped**, and skipped renders green. A quality gate that silently does not
+run is worse than no gate, because it manufactures confidence. Pinning the whole
+langchain family to the 0.3 line fixed it, and CI now runs an explicit
+`python -c "import ragas"` so this can only ever fail loudly.
 
 ---
 
