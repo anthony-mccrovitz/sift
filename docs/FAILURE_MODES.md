@@ -276,6 +276,39 @@ quietly starts lying.
 
 ---
 
+## 12. A missing binary disguised itself as 24 broken documents
+
+**Symptom.** A full ingest completed successfully: 437 parsed, 42 failed, a
+tidy failure log. Every failure in it was real. But 24 of them read
+`PDFInfoNotInstalledError: Unable to get page count. Is poppler installed?` —
+and those 24 were almost exactly the scanned documents, which are the ones this
+project exists to handle.
+
+**Cause.** `pdf2image` shells out to poppler's `pdfinfo`, and poppler was not on
+`PATH` for that run. Not because it was uninstalled — because the run was
+launched through a login shell, macOS's `path_helper` rebuilt `PATH` from
+`/etc/paths`, and `/opt/homebrew/bin` was not in it.
+
+**Handling.** A `preflight()` check that runs before anything is parsed and
+refuses to start when `pdfinfo`, `pdftoppm` or `tesseract` is missing, naming
+the package to install rather than the binary that was probed.
+
+**Why it matters.** This is the most instructive failure here, because the
+pipeline behaved exactly as designed and that was the problem. It is built never
+to die on a single document, so a missing binary did not stop it — it marked
+every scanned document `failed` and carried on. The result was a green run, a
+plausible failure log, and a corpus quietly containing none of the scanned
+documents.
+
+The general shape: per-document error handling makes environment errors look
+like data errors. One document failing to parse is data. Every document of one
+kind failing identically is the machine, and the two belong in different
+channels — the failure log describes documents, so it should never be where you
+find out poppler is missing. Resilience without a preflight is just a slower way
+to get a wrong answer.
+
+---
+
 ## Still open
 
 - **q017 retrieval miss.** "What change did the rule make to references to the

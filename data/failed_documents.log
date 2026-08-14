@@ -1,7 +1,71 @@
 # Documents that did not ingest cleanly
-# 3 documents, grouped by failure kind, most common first.
+# 63 documents, grouped by failure kind, most common first.
 
-## download  (3 documents)
+## PDFInfoNotInstalledError  (23 documents)
+  nasa-19650014500                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19650014771                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19660006294                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19660013040                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19660023727                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19660026256                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19670016335                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19690018719                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19690019892                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19700012724                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19700029685                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19710023560                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19710026928                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19710069971                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19720013221                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19720018349                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19740026589                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19740076584                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19750012311                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19750065539                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-19750065540                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nasa-20000004246                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+  nist-sp-1800-30-final                              [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+
+## NoTextExtracted  (21 documents)
+  gaoreports-gao-04-659                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-gao-04-705                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-gao-05-375                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-gao-06-154                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-gao-06-247                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-gao-06-649                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-ggd-00-61                               [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-nsiad-00-108                            [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-nsiad-00-76                             [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  gaoreports-rced-00-67                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-1800-10-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-1800-19-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-1800-28-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-1800-29-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-1800-32-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-1800-36-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-1800-37-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-1800-45-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-500-320-final                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-800-219-r1-final                           [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+  nist-sp-800-53-a-r5-final                          [fast] NoTextExtracted: 0 usable elements (strategy=fast)
+
+## download  (19 documents)
+  gaoreports-gao-02-652t                             [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-gao-03-352g                             [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-gao-05-259                              [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-gao-05-368                              [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-ggd-rced-94-272                         [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-hehs-94-189                             [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
   gaoreports-nsiad-94-182br                          [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-nsiad-94-218br                          [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-rced-94-137                             [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-ggd-95-131                            [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-hehs-94-121                           [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-hehs-94-145                           [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
   gaoreports-t-hehs-94-221                           [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-hehs-95-183                           [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-hehs-95-205                           [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-hehs-95-69                            [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-nsiad-94-227                          [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
   gaoreports-t-rced-94-121                           [-] download: NotAPdf: no PDF rendition published for this package (soft 404)
+  gaoreports-t-rced-aimd-95-131                      [-] download: NotAPdf: no PDF rendition published for this package (soft 404)

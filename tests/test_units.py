@@ -202,3 +202,34 @@ def test_timeout_scales_with_pages_for_ocr_but_not_for_fast():
     assert compute_timeout(STRATEGY_FAST, 500) == 300
     assert compute_timeout(STRATEGY_OCR, 40) > 300
     assert compute_timeout(STRATEGY_OCR, 100000) <= 3600  # bounded
+
+
+# ---------------------------------------------------------------------------
+# preflight
+# ---------------------------------------------------------------------------
+
+
+def test_preflight_reports_missing_ocr_binaries(monkeypatch):
+    """A missing binary must stop the run, not become 24 'failed' documents.
+
+    The pipeline never dies on a single document, so without this check a
+    missing poppler produces a completed ingest whose corpus silently contains
+    none of the scanned documents.
+    """
+    from sift.ingest import __main__ as ingest_main
+
+    monkeypatch.setattr(ingest_main.shutil, "which", lambda _exe: None)
+    assert ingest_main.preflight() == ["poppler", "tesseract"]
+
+    monkeypatch.setattr(ingest_main.shutil, "which", lambda exe: f"/usr/bin/{exe}")
+    assert ingest_main.preflight() == []
+
+
+def test_preflight_names_the_package_not_the_binary(monkeypatch):
+    """pdfinfo and pdftoppm both ship in poppler; reporting it twice is noise."""
+    from sift.ingest import __main__ as ingest_main
+
+    monkeypatch.setattr(
+        ingest_main.shutil, "which", lambda exe: None if exe == "pdfinfo" else f"/usr/bin/{exe}"
+    )
+    assert ingest_main.preflight() == ["poppler"]
