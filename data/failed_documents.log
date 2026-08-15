@@ -1,30 +1,5 @@
 # Documents that did not ingest cleanly
-# 63 documents, grouped by failure kind, most common first.
-
-## PDFInfoNotInstalledError  (23 documents)
-  nasa-19650014500                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19650014771                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19660006294                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19660013040                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19660023727                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19660026256                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19670016335                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19690018719                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19690019892                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19700012724                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19700029685                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19710023560                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19710026928                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19710069971                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19720013221                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19720018349                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19740026589                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19740076584                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19750012311                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19750065539                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-19750065540                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nasa-20000004246                                   [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
-  nist-sp-1800-30-final                              [ocr_only] PDFInfoNotInstalledError: Unable to get page count. Is poppler installed and in PATH?
+# 40 documents, grouped by failure kind, most common first.
 
 ## NoTextExtracted  (21 documents)
   gaoreports-gao-04-659                              [fast] NoTextExtracted: 0 usable elements (strategy=fast)

@@ -1,0 +1,895 @@
+{
+  "metrics": {
+    "questions": 36,
+    "answerable": 32,
+    "unanswerable": 4,
+    "recall_at_k": 0.9375,
+    "mrr": 0.8578,
+    "retrieval_p50_ms": 194,
+    "retrieval_p95_ms": 393,
+    "recall_by_category": {
+      "factual": 0.9375,
+      "filtered": 1.0,
+      "identifier": 1.0,
+      "ocr": 0.75,
+      "quantitative": 1.0
+    }
+  },
+  "thresholds": {
+    "retrieval": {
+      "recall_at_k": 0.85,
+      "k": 6,
+      "mrr": 0.6,
+      "citation_validity": 1.0,
+      "abstention_rate": 0.75,
+      "false_abstention_rate": 0.15
+    },
+    "ragas": {
+      "faithfulness": 0.85,
+      "answer_relevancy": 0.8,
+      "context_precision": 0.7,
+      "context_recall": 0.7
+    },
+    "latency": {
+      "retrieval_p50_ms": 250,
+      "retrieval_p95_ms": 800
+    }
+  },
+  "with_llm": false,
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "results": [
+    {
+      "id": "q001",
+      "question": "What law requires the EPA to establish drinking water standards, and when was it enacted?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-rced-97-123"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-gao-03-881t",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 507,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q002",
+      "question": "Approximately how many community water systems does the Safe Drinking Water Act cover?",
+      "category": "quantitative",
+      "gold_doc_ids": [
+        "gaoreports-rced-97-123"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 374,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q003",
+      "question": "What was the most common drinking water contamination problem GAO found in the six states it reviewed?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-rced-97-123"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 201,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q004",
+      "question": "Why is less known about the quality of water from private wells than from community water systems?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-rced-97-123"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 359,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q005",
+      "question": "For how many regulated contaminants did community water systems in the six states GAO reviewed exceed the standard at least once?",
+      "category": "quantitative",
+      "gold_doc_ids": [
+        "gaoreports-rced-97-123"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123",
+        "gaoreports-rced-97-123"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 228,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q006",
+      "question": "What weaknesses did GAO identify in controls over missile-related technology exports to China?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-nsiad-95-82"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 182,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q007",
+      "question": "What penalties do violators of U.S. export laws face?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-nsiad-95-82"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-t-nsiad-99-23",
+        "gaoreports-nsiad-97-119",
+        "gaoreports-t-nsiad-99-23",
+        "gaoreports-nsiad-95-82"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 106,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q008",
+      "question": "How does the MTCR Annex categorise controlled items?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-nsiad-95-82"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "nist-sp-800-53-r5-upd1-final",
+        "gaoreports-nsiad-95-82",
+        "nist-sp-800-53-r5-upd1-final",
+        "gaoreports-nsiad-95-82"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 224,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q009",
+      "question": "What did GAO report about export controls between 1994 and 1996?",
+      "category": "filtered",
+      "gold_doc_ids": [
+        "gaoreports-nsiad-95-82"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 55,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q010",
+      "question": "What risks did GAO identify to the space station program's cost and schedule?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-t-nsiad-96-210"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-t-nsiad-96-210",
+        "gaoreports-t-nsiad-96-210",
+        "gaoreports-t-nsiad-96-210",
+        "gaoreports-gao-04-201t",
+        "gaoreports-gao-04-201t",
+        "gaoreports-gao-04-201t"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 177,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q011",
+      "question": "How does GAO define cost variances and schedule variances for the space station program?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-t-nsiad-96-210"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-t-nsiad-96-210",
+        "gaoreports-t-nsiad-96-210",
+        "gaoreports-t-nsiad-96-210",
+        "gaoreports-gao-06-391",
+        "gaoreports-t-nsiad-96-210",
+        "gaoreports-nsiad-99-55"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 182,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q012",
+      "question": "What did GAO say about NASA and contractor commitments on the space station?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-t-nsiad-96-210"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-gao-04-201t",
+        "gaoreports-gao-04-201t",
+        "gaoreports-gao-04-201t",
+        "gaoreports-gao-07-310",
+        "gaoreports-t-nsiad-96-210",
+        "gaoreports-gao-04-201t"
+      ],
+      "hit": true,
+      "reciprocal_rank": 0.2,
+      "retrieval_ms": 148,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q013",
+      "question": "Under what statute is hazardous duty pay authorised for General Schedule employees?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "fr-2026-16687"
+      ],
+      "retrieved_doc_ids": [
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 211,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q014",
+      "question": "Does OPM extend the wildland fire pay differential to pre-ignition preparation activities?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "fr-2026-16687"
+      ],
+      "retrieved_doc_ids": [
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16630"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 209,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q015",
+      "question": "How many comments did OPM receive recommending that the final rule include employees paid under the GW pay plan?",
+      "category": "quantitative",
+      "gold_doc_ids": [
+        "fr-2026-16687"
+      ],
+      "retrieved_doc_ids": [
+        "fr-2026-16687",
+        "fr-2026-16630",
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16687"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 191,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q016",
+      "question": "What pay enhancements for federal firefighters did a commenter say had already been provided?",
+      "category": "quantitative",
+      "gold_doc_ids": [
+        "fr-2026-16687"
+      ],
+      "retrieved_doc_ids": [
+        "fr-2026-16687",
+        "fr-2026-16687",
+        "fr-2026-16508",
+        "fr-2026-16687",
+        "fr-2026-16630",
+        "fr-2026-16508"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 249,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q017",
+      "question": "What change did the rule make to references to the General Accounting Office?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "fr-2026-16687"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-gao-04-763g",
+        "gaoreports-oimc-95-12",
+        "gaoreports-ggd-95-64",
+        "gaoreports-gao-03-881t",
+        "gaoreports-rced-95-192",
+        "gaoreports-gao-08-603"
+      ],
+      "hit": false,
+      "reciprocal_rank": 0.0,
+      "retrieval_ms": 167,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q018",
+      "question": "What did NIST publish about the Cybersecurity Framework 2.0 for small businesses?",
+      "category": "filtered",
+      "gold_doc_ids": [
+        "nist-sp-1300-final"
+      ],
+      "retrieved_doc_ids": [
+        "nist-sp-1300-final",
+        "nist-sp-1300-final",
+        "nist-sp-800-220-final",
+        "nist-sp-800-220-final",
+        "nist-sp-1299-final",
+        "nist-sp-800-214-final"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 211,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q019",
+      "question": "What is NIST SP 1271?",
+      "category": "identifier",
+      "gold_doc_ids": [
+        "nist-sp-1271-final"
+      ],
+      "retrieved_doc_ids": [
+        "nist-sp-1271-final",
+        "nist-sp-1271-final",
+        "nist-sp-1271-final",
+        "nist-sp-1271-final",
+        "nist-sp-1271-final",
+        "nist-sp-1271-final"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 171,
+      "routing_mode": "keyword",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q020",
+      "question": "What NIST publication covers federal cybersecurity role-based training?",
+      "category": "filtered",
+      "gold_doc_ids": [
+        "nist-sp-1288-final"
+      ],
+      "retrieved_doc_ids": [
+        "nist-sp-1288-final",
+        "nist-sp-1288-final",
+        "nist-sp-1288-final",
+        "nist-sp-800-220-final",
+        "nist-sp-1288-final",
+        "nist-sp-800-216-final"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 233,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q021",
+      "question": "What guidance has NIST issued on the Cybersecurity Framework 2.0?",
+      "category": "filtered",
+      "gold_doc_ids": [
+        "nist-sp-1299-final",
+        "nist-sp-1300-final",
+        "nist-sp-1301-final",
+        "nist-sp-1302-final"
+      ],
+      "retrieved_doc_ids": [
+        "nist-sp-800-220-final",
+        "nist-sp-1299-final",
+        "nist-sp-1300-final",
+        "nist-sp-1308-final",
+        "nist-sp-1308-final",
+        "nist-sp-1800-16-final"
+      ],
+      "hit": true,
+      "reciprocal_rank": 0.5,
+      "retrieval_ms": 181,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q022",
+      "question": "What are the two principal types of unsteady phenomena affecting launch vehicles?",
+      "category": "ocr",
+      "gold_doc_ids": [
+        "nasa-19670021251"
+      ],
+      "retrieved_doc_ids": [
+        "nasa-19670021251",
+        "nasa-19660029197",
+        "nasa-19740007417",
+        "nasa-19740007419",
+        "nasa-19670021251",
+        "nasa-19740007419"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 235,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q023",
+      "question": "What did X-15 flight tests reveal about panel flutter?",
+      "category": "ocr",
+      "gold_doc_ids": [
+        "nasa-19670021251"
+      ],
+      "retrieved_doc_ids": [
+        "nasa-19660013040",
+        "nasa-19650014500",
+        "nasa-19660029197",
+        "nasa-19670021251",
+        "nasa-19660013040",
+        "nasa-19660013040"
+      ],
+      "hit": true,
+      "reciprocal_rank": 0.25,
+      "retrieval_ms": 205,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q024",
+      "question": "What causes buffeting on a launch vehicle?",
+      "category": "ocr",
+      "gold_doc_ids": [
+        "nasa-19670021251"
+      ],
+      "retrieved_doc_ids": [
+        "nasa-19750065506",
+        "nasa-19670021251",
+        "nasa-19660007272",
+        "gaoreports-gao-06-391",
+        "nasa-19660029197",
+        "gaoreports-gao-06-729g"
+      ],
+      "hit": true,
+      "reciprocal_rank": 0.5,
+      "retrieval_ms": 100,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q025",
+      "question": "What is engine-generated noise research directed toward?",
+      "category": "ocr",
+      "gold_doc_ids": [
+        "nasa-19670021251"
+      ],
+      "retrieved_doc_ids": [
+        "nasa-19660029197",
+        "nasa-19710028123",
+        "nist-sp-1800-2-final",
+        "nasa-19710026944",
+        "nasa-19710023035",
+        "nasa-19710026944"
+      ],
+      "hit": false,
+      "reciprocal_rank": 0.0,
+      "retrieval_ms": 217,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q026",
+      "question": "GAO/NSIAD-95-82",
+      "category": "identifier",
+      "gold_doc_ids": [
+        "gaoreports-nsiad-95-82"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82",
+        "gaoreports-nsiad-95-82"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 114,
+      "routing_mode": "keyword",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q027",
+      "question": "What NASA research was conducted at MSFC on aerodynamics?",
+      "category": "filtered",
+      "gold_doc_ids": [
+        "nasa-19660029197"
+      ],
+      "retrieved_doc_ids": [
+        "nasa-19660029197",
+        "nasa-19740007417",
+        "nasa-19660029197",
+        "nasa-19660029197",
+        "nasa-19660020084",
+        "nasa-19660029197"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 204,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q028",
+      "question": "What is the subject of NASA's bibliography of NACA reports on air inlets?",
+      "category": "identifier",
+      "gold_doc_ids": [
+        "nasa-19930085495"
+      ],
+      "retrieved_doc_ids": [
+        "nasa-19930085495",
+        "nasa-19930085495",
+        "nasa-19930085495",
+        "nasa-19700012724",
+        "nasa-19930085495",
+        "nasa-19930085495"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 216,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q029",
+      "question": "What financial issues did GAO raise about the District of Columbia Courts?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-t-aimd-ogc-99-176"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-t-aimd-ogc-99-176",
+        "gaoreports-t-aimd-ogc-99-176",
+        "gaoreports-t-aimd-ogc-99-176",
+        "gaoreports-t-aimd-ogc-99-176",
+        "gaoreports-t-aimd-ogc-99-176",
+        "gaoreports-t-aimd-ogc-99-176"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 168,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q030",
+      "question": "What management challenges did GAO identify at the Department of Agriculture?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-ocg-99-2",
+        "gaoreports-rced-99-38"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-ocg-99-2",
+        "gaoreports-gao-01-243",
+        "gaoreports-gao-01-243",
+        "gaoreports-ocg-99-2",
+        "gaoreports-ocg-99-2",
+        "gaoreports-ocg-99-2"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 161,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q031",
+      "question": "What issues did recent market developments raise for the U.S. Export-Import Bank?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "gaoreports-t-nsiad-99-23"
+      ],
+      "retrieved_doc_ids": [
+        "gaoreports-t-nsiad-99-23",
+        "gaoreports-t-nsiad-99-23",
+        "gaoreports-t-nsiad-99-23",
+        "gaoreports-t-nsiad-99-23",
+        "gaoreports-t-nsiad-99-23",
+        "gaoreports-t-nsiad-99-23"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 252,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q032",
+      "question": "What airworthiness directives were issued for Air Tractor airplanes?",
+      "category": "factual",
+      "gold_doc_ids": [
+        "fr-2026-16672"
+      ],
+      "retrieved_doc_ids": [
+        "fr-2026-16672",
+        "fr-2026-16672",
+        "fr-2026-16655",
+        "fr-2026-16672",
+        "fr-2026-16506",
+        "fr-2026-16659"
+      ],
+      "hit": true,
+      "reciprocal_rank": 1.0,
+      "retrieval_ms": 198,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q033",
+      "question": "What was NASA's total budget in fiscal year 2023?",
+      "category": "unanswerable",
+      "gold_doc_ids": [],
+      "retrieved_doc_ids": [],
+      "hit": false,
+      "reciprocal_rank": 0.0,
+      "retrieval_ms": 44,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q034",
+      "question": "What is the current price of Bitcoin?",
+      "category": "unanswerable",
+      "gold_doc_ids": [],
+      "retrieved_doc_ids": [
+        "gaoreports-b-297392",
+        "gaoreports-b-285666",
+        "gaoreports-b-281228-2",
+        "gaoreports-b-298682-3",
+        "gaoreports-rced-98-208",
+        "gaoreports-b-298682-3"
+      ],
+      "hit": false,
+      "reciprocal_rank": 0.0,
+      "retrieval_ms": 71,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q035",
+      "question": "Who is the current Secretary of Defense?",
+      "category": "unanswerable",
+      "gold_doc_ids": [],
+      "retrieved_doc_ids": [
+        "gaoreports-gao-07-461",
+        "gaoreports-gao-07-461",
+        "gaoreports-gao-08-431r",
+        "gaoreports-gao-07-461",
+        "gaoreports-gao-07-461",
+        "gaoreports-gao-07-461"
+      ],
+      "hit": false,
+      "reciprocal_rank": 0.0,
+      "retrieval_ms": 89,
+      "routing_mode": "hybrid",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    },
+    {
+      "id": "q036",
+      "question": "What did GAO conclude about the Affordable Care Act's insurance exchanges?",
+      "category": "unanswerable",
+      "gold_doc_ids": [],
+      "retrieved_doc_ids": [
+        "gaoreports-hehs-99-165",
+        "gaoreports-gao-06-589r",
+        "gaoreports-hehs-97-75",
+        "gaoreports-gao-01-224",
+        "gaoreports-ggd-96-120",
+        "gaoreports-hehs-97-75"
+      ],
+      "hit": false,
+      "reciprocal_rank": 0.0,
+      "retrieval_ms": 185,
+      "routing_mode": "filtered",
+      "answered": null,
+      "abstained": null,
+      "citation_count": 0,
+      "invalid_citation_count": 0
+    }
+  ]
+}

@@ -39,21 +39,55 @@ because the output is indistinguishable from a correct one.
 
 ## Results
 
-Measured on the frozen evaluation corpus (`eval/fixtures/corpus.jsonl.gz`) with
-36 hand-checked questions.
+Measured on the **full local corpus** — 460 parsed documents, 55,294 chunks,
+29 of them scanned — against 36 hand-checked questions. This is the number that
+describes the system. The CI gate runs on a smaller committed sample and scores
+slightly better; both are shown below, because reporting only the easier one is
+the exact drift this project exists to catch.
 
 <!-- RESULTS:START -->
 | Metric | Score |
 |---|---|
-| Recall@6 | _pending full-corpus run_ |
-| MRR | _pending_ |
-| Documents parsed | _pending_ |
-| Median retrieval latency | _pending_ |
+| Recall@6 | **0.9375** |
+| MRR | **0.8578** |
+| Documents parsed | **460/500** |
+| Chunks indexed | 55294 |
+| Median retrieval latency | **194 ms** |
+| p95 retrieval latency | 393 ms |
 <!-- RESULTS:END -->
 
 Retrieval metrics are deterministic and need no API key — they run on every pull
 request. RAGAS metrics need an LLM judge and run separately. See
 [Evaluation](#evaluation).
+
+**Full corpus vs. the CI sample.** Same questions, same code, different amounts
+of competition:
+
+| | full corpus (460 docs) | CI fixture (279 docs) |
+|---|---|---|
+| Recall@6 | 0.9375 | 0.9375 |
+| MRR | **0.8578** | 0.9125 |
+| p50 latency | 194 ms | 86 ms |
+
+Recall is identical because the same two questions fail either way. MRR is
+**0.055 higher on the sample** — with 181 fewer documents competing, gold
+passages rank higher. That gap is the cost of a fast gate, and it is the reason
+the headline above quotes the full-corpus number.
+
+**Where it still fails.** Two questions miss, both documented rather than
+tuned away:
+
+- **q017** asks what a rule changed about references to the "General Accounting
+  Office". The phrase is overwhelmingly associated with GAO documents, so
+  retrieval returns GAO reports; the answer is in a Federal Register rule that
+  renames the agency. A genuine limitation of lexical + dense retrieval without
+  query rewriting.
+- **q025** is an OCR question whose answer sits in a 1967 microfiche scan that
+  competes with a closely related NASA document from the same series.
+
+The `ocr` category scores **0.75**, the lowest of the six. That is the honest
+cost of retrieving over machine-read scans, and it is why the category is broken
+out rather than averaged away.
 
 ---
 
@@ -320,9 +354,26 @@ actually see?", and that should not require a database client.
 | NASA | NTRS API | the main supply of genuine scans — 1960s microfiche |
 | Federal Register | documents.json API | inconsistent typesetting from many agencies |
 
-Documents that fail are written to `data/failed_documents.log` with the reason,
-grouped by failure kind, and kept in the `documents` table with status `failed`.
-"487 of 500" is only meaningful if you can say which 13.
+What the 500-document manifest actually produced:
+
+| source | parsed | chunks | scanned | empty | failed |
+|---|---|---|---|---|---|
+| NIST | 109 | 23,241 | 2 | 11 | 0 |
+| NASA | 100 | 20,723 | **27** | 0 | 0 |
+| GAO | 171 | 8,319 | 0 | 10 | 19 |
+| Federal Register | 80 | 3,011 | 0 | 0 | 0 |
+| **total** | **460** | **55,294** | **29** | **21** | **19** |
+
+All 19 failures are one thing: govinfo publishes the package but no PDF
+rendition, and serves an HTML "Page Not Found" body under HTTP 200. The
+downloader catches it by checking for `%PDF` magic bytes rather than trusting
+the status code, which is why they are reported as missing renditions instead of
+being parsed as documents. The 21 `empty` documents parsed without error and
+yielded no usable text — mostly GAO and NIST cover-page-only records.
+
+Every one is written to [`data/failed_documents.log`](data/failed_documents.log)
+with its reason, grouped by failure kind, and kept in the `documents` table with
+status `failed`. "460 of 500" is only meaningful if you can say which 40.
 
 ---
 
@@ -391,13 +442,20 @@ table, so "what happened to document X" is a query.
 - **The eval set needs a human pass.** It was drafted from real retrieved
   passages and each answer is checkable against its cited page — but an eval set
   nobody has read is a liability, because it gates CI on unverified assertions.
+- **The RAGAS tier is wired up but not yet measured.** The gate, thresholds and
+  workflow all exist and the judge imports cleanly; no run has been recorded, so
+  the faithfulness column in [`benchmarks/history.md`](benchmarks/history.md)
+  reads `-`. It needs an API key, and an unmeasured metric is quoted as
+  unmeasured rather than estimated.
 - **The RAGAS judge shares a model with the generator.** A model grading its own
-  output is measurably more generous. Treat those four numbers as regression
-  detectors, not absolute quality.
+  output is measurably more generous. When those four numbers do land, treat them
+  as regression detectors, not absolute quality.
 - **The router is rules, not an agent.** Deliberately. It is testable and
   debuggable, and it is described as what it is.
-- **One known retrieval miss** (`q017`), left failing on purpose — it needs
-  query rewriting, which is not built.
+- **Two known retrieval misses** (`q017`, `q025`), left failing on purpose.
+  `q017` needs query rewriting, which is not built; `q025` is an OCR question
+  losing to a near-identical document in the same NASA series. The `ocr`
+  category scores 0.75 and is reported separately rather than averaged away.
 
 ## What I'd do next
 
