@@ -3,35 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import shutil
 
 from sift.db import healthcheck
 from sift.ingest.pipeline import run_ingest
-
-# System binaries pip cannot install. OCR reaches these through pdf2image and
-# pytesseract, which shell out and raise per-document when they are missing.
-REQUIRED_BINARIES = {
-    "pdfinfo": "poppler",
-    "pdftoppm": "poppler",
-    "tesseract": "tesseract",
-}
-
-
-def preflight() -> list[str]:
-    """Fail before parsing if the OCR toolchain is not on PATH.
-
-    Worth doing because of how this breaks otherwise. pdf2image raises
-    PDFInfoNotInstalledError per document, and the pipeline is deliberately
-    built never to die on one document -- so a missing binary does not stop the
-    run. It marks every scanned document 'failed' and continues, and you get a
-    completed ingest, a plausible failure log, and a corpus that quietly
-    contains none of the scanned documents the project is about.
-
-    That is an environment problem wearing a data problem's clothes. The failure
-    log is meant to describe documents, not the machine, so this check keeps
-    them separate: missing binaries stop the run before anything is parsed.
-    """
-    return sorted({pkg for exe, pkg in REQUIRED_BINARIES.items() if not shutil.which(exe)})
+from sift.ingest.preflight import format_missing, missing_binaries
 
 
 def main() -> int:
@@ -58,15 +33,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    missing = preflight()
+    missing = missing_binaries()
     if missing:
-        print(f"Missing system dependencies: {', '.join(missing)}")
-        print("OCR cannot run without them, and every scanned document would be")
-        print("recorded as a parse failure rather than as the environment problem")
-        print("it actually is. Install them first:")
-        print(f"  macOS:  brew install {' '.join(missing)}")
-        deb = {"poppler": "poppler-utils", "tesseract": "tesseract-ocr"}
-        print(f"  Debian: apt-get install -y {' '.join(deb.get(m, m) for m in missing)}")
+        print(format_missing(missing))
         return 1
 
     health = healthcheck()

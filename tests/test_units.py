@@ -23,6 +23,7 @@ from sift.ingest.partition import (  # noqa: E402
     choose_strategy,
     compute_timeout,
 )
+from sift.ingest import preflight  # noqa: E402
 from sift.retrieval.router import route  # noqa: E402
 from sift.retrieval.search import Hit, build_tsquery, doc_id_patterns, reciprocal_rank_fusion  # noqa: E402
 
@@ -216,20 +217,33 @@ def test_preflight_reports_missing_ocr_binaries(monkeypatch):
     missing poppler produces a completed ingest whose corpus silently contains
     none of the scanned documents.
     """
-    from sift.ingest import __main__ as ingest_main
+    monkeypatch.setattr(preflight.shutil, "which", lambda _exe: None)
+    assert preflight.missing_binaries() == ["poppler", "tesseract"]
 
-    monkeypatch.setattr(ingest_main.shutil, "which", lambda _exe: None)
-    assert ingest_main.preflight() == ["poppler", "tesseract"]
-
-    monkeypatch.setattr(ingest_main.shutil, "which", lambda exe: f"/usr/bin/{exe}")
-    assert ingest_main.preflight() == []
+    monkeypatch.setattr(preflight.shutil, "which", lambda exe: f"/usr/bin/{exe}")
+    assert preflight.missing_binaries() == []
 
 
 def test_preflight_names_the_package_not_the_binary(monkeypatch):
     """pdfinfo and pdftoppm both ship in poppler; reporting it twice is noise."""
-    from sift.ingest import __main__ as ingest_main
-
     monkeypatch.setattr(
-        ingest_main.shutil, "which", lambda exe: None if exe == "pdfinfo" else f"/usr/bin/{exe}"
+        preflight.shutil, "which", lambda exe: None if exe == "pdfinfo" else f"/usr/bin/{exe}"
     )
-    assert ingest_main.preflight() == ["poppler"]
+    assert preflight.missing_binaries() == ["poppler"]
+
+
+def test_preflight_message_names_install_commands():
+    """The error is read by someone already stuck; it must say what to run."""
+    message = preflight.format_missing(["poppler", "tesseract"])
+    assert "brew install poppler tesseract" in message
+    assert "poppler-utils tesseract-ocr" in message
+
+
+def test_preflight_module_imports_without_the_parsing_stack():
+    """Regression: this check must not drag in unstructured.
+
+    The unit-test tier installs neither unstructured nor torch. Importing
+    preflight through sift.ingest.__main__ pulled in the whole parsing stack and
+    turned a dependency-free check into a test that could not run in CI.
+    """
+    assert "unstructured" not in sys.modules
