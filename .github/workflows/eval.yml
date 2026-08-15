@@ -7,11 +7,13 @@ name: Evaluation Gate
 #
 #   retrieval-gate  Deterministic, no API key. Runs on EVERY pull request
 #                   including forks -- this is the gate that always holds.
-#                   Budget ~10-12 minutes, most of it re-embedding the fixture's
-#                   ~14k chunks on a 2-core runner. Embeddings are recomputed
-#                   rather than committed because 14k x 384 floats is far larger
-#                   than the text they come from, and a pinned model makes the
-#                   recomputation deterministic anyway.
+#                   Budget ~4 minutes. It used to be 26, of which 24 were spent
+#                   re-embedding the fixture's ~14k chunks at ~9.5 chunks/sec on
+#                   a 2-core runner: 93% of the gate recomputing a pure function
+#                   of text that was already committed. The vectors are now
+#                   committed alongside it (float16) and the fixture records
+#                   which model produced them, so a model change fails at load
+#                   with a clear message instead of as collapsed recall.
 #   ragas-gate      LLM-judged, costs money, needs a repository secret. Runs on
 #                   pull requests from this repo and on pushes to main.
 #
