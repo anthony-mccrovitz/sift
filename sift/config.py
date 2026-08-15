@@ -52,6 +52,29 @@ class Settings(BaseSettings):
     final_top_k: int = 6  # what actually reaches the LLM
     rrf_k: int = 60  # reciprocal-rank-fusion constant
 
+    # How many candidates HNSW keeps in flight while searching. pgvector's
+    # default is 40, and raising it trades latency for a closer approximation.
+    #
+    # Raised from the default because of a measured problem: loading the
+    # identical fixture twice does not build the identical graph, so the same
+    # query against the same data can return different neighbours depending on
+    # which build answered it. Across two clean builds of the CI fixture, the
+    # number of eval questions whose dense results changed was:
+    #
+    #     ef_search=40 (default)   10 of 36
+    #     ef_search=200             3 of 36
+    #     ef_search=500             1 of 36
+    #
+    # 200 rather than 500 because of the other half of the measurement. On the
+    # 14k-chunk fixture, 500 costs nothing; on the full 55k-chunk corpus it
+    # takes p50 to 262ms, over the 250ms budget in config/thresholds.yaml. At
+    # 200 the full corpus sits at 225ms. Recall@6 and MRR are identical at every
+    # value tested -- this buys stability, not accuracy.
+    #
+    # It narrows approximate search toward exact search. It does not make it
+    # exact, and no value here makes HNSW deterministic across index builds.
+    hnsw_ef_search: int = 200
+
     # --- LLM ---------------------------------------------------------------
     llm_provider: str = "anthropic"  # anthropic | openai
     anthropic_model: str = "claude-sonnet-5"

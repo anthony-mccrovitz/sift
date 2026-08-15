@@ -7,6 +7,7 @@ hybrid retrieval. Everything here is a plain function that takes a connection.
 from __future__ import annotations
 
 import contextlib
+import re
 from typing import Any, Iterable, Iterator, Sequence
 
 import psycopg
@@ -14,6 +15,42 @@ from pgvector.psycopg import register_vector
 from psycopg.rows import dict_row
 
 from sift.config import settings
+
+
+# Planner settings applied to every new connection. Empty in normal operation.
+# The evaluation's determinism check fills this in to force the repeat pass onto
+# a different query plan -- see session_settings below.
+_SESSION_GUCS: dict[str, str] = {}
+
+# Applied via set_config() rather than SET, because SET takes no parameters --
+# it is parsed as a utility statement, so a placeholder in it is a syntax error.
+# set_config(name, value, is_local) is the parameterisable equivalent. The name
+# is still validated: these come from our own code, never from a request, but a
+# validated identifier costs one regex and removes the question entirely.
+_GUC_NAME_RE = re.compile(r"^[a-z_][a-z0-9_.]*$")
+
+
+@contextlib.contextmanager
+def session_settings(**gucs: str) -> Iterator[None]:
+    """Apply Postgres session settings to connections opened inside this block.
+
+    Exists so the eval can re-run retrieval under a deliberately different query
+    plan. Tie-broken-by-the-executor bugs are invisible to a plain repeat run --
+    two identical runs pick the same plan and agree with each other while both
+    being arbitrary -- so the only way to test for them is to change the plan and
+    check the answer did not change with it.
+    """
+    global _SESSION_GUCS
+    bad = [name for name in gucs if not _GUC_NAME_RE.match(name)]
+    if bad:
+        raise ValueError(f"invalid session setting name(s): {bad}")
+
+    previous = _SESSION_GUCS
+    _SESSION_GUCS = {**previous, **gucs}
+    try:
+        yield
+    finally:
+        _SESSION_GUCS = previous
 
 
 @contextlib.contextmanager
@@ -26,6 +63,12 @@ def connect(autocommit: bool = True) -> Iterator[psycopg.Connection]:
     """
     with psycopg.connect(settings.db_url, autocommit=autocommit, row_factory=dict_row) as conn:
         register_vector(conn)
+        # Applied to every connection rather than to the query, because a
+        # per-query SET would need its own round trip. See config.py for why the
+        # default is not pgvector's default.
+        conn.execute("SELECT set_config('hnsw.ef_search', %s, false)", (str(settings.hnsw_ef_search),))
+        for name, value in _SESSION_GUCS.items():
+            conn.execute("SELECT set_config(%s, %s, false)", (name, value))
         yield conn
 
 

@@ -115,17 +115,33 @@ def vector_search(query: str, top_k: int | None = None, filters: dict | None = N
     `<=>` is cosine *distance*, so smaller is better; we flip it to a similarity
     for readability. Embeddings are pre-normalised (see embed.py), which makes
     this exact rather than approximate up to the index's recall.
+
+    The two-stage shape is about determinism, not style. Distance ties are not
+    hypothetical here: government PDFs repeat boilerplate headers and footers, so
+    byte-identical chunks get byte-identical vectors and therefore exactly equal
+    distances. `ORDER BY distance LIMIT k` leaves the order among those ties to
+    the executor, which is free to change it between runs -- and it does, which
+    made the regression gate return different metrics for identical data.
+
+    The obvious fix, `ORDER BY c.embedding <=> q, c.id`, is wrong: a compound
+    sort key the HNSW index cannot serve makes the planner abandon the index for
+    a full sequential scan (verified with EXPLAIN). So the inner query keeps the
+    plain index-ordered LIMIT, and the outer query imposes a total order on the
+    rows it returned.
     """
     top_k = top_k or settings.vector_top_k
     where, params = _where(filters)
     vector = embed_query(query)
 
     sql = f"""
-        SELECT {_SELECT}, 1 - (c.embedding <=> %(qvec)s) AS score
-        FROM chunks c JOIN documents d USING (doc_id)
-        WHERE {where} AND c.embedding IS NOT NULL
-        ORDER BY c.embedding <=> %(qvec)s
-        LIMIT %(k)s
+        SELECT *, 1 - distance AS score FROM (
+            SELECT {_SELECT}, c.embedding <=> %(qvec)s AS distance
+            FROM chunks c JOIN documents d USING (doc_id)
+            WHERE {where} AND c.embedding IS NOT NULL
+            ORDER BY c.embedding <=> %(qvec)s
+            LIMIT %(k)s
+        ) ranked
+        ORDER BY distance, id
     """
     with connect() as conn:
         rows = conn.execute(sql, {**params, "qvec": vector, "k": top_k}).fetchall()
@@ -234,6 +250,16 @@ def keyword_search(query: str, top_k: int | None = None, filters: dict | None = 
     # A chunk qualifies on either signal: a full-text match, or belonging to a
     # document whose id matches an identifier in the query. Identifier matches
     # are scored above every text match so an exact lookup wins outright.
+    #
+    # `, c.id` is the tiebreak, and it matters more here than on the dense side.
+    # ts_rank_cd ties constantly -- every chunk matching the same terms the same
+    # number of times scores identically, and an identifier lookup gives a whole
+    # document the same 100 + epsilon. Without a tiebreak, `LIMIT k` over
+    # hundreds of tied rows returns an arbitrary k of them, so the same query
+    # against the same corpus can return different documents on different runs.
+    # This one is free: the plan already materialises a sort here, so the extra
+    # key rides along with it. The dense side could not do the same -- see
+    # vector_search.
     sql = f"""
         SELECT {_SELECT},
                CASE WHEN %(patterns)s::text[] IS NOT NULL
@@ -247,7 +273,7 @@ def keyword_search(query: str, top_k: int | None = None, filters: dict | None = 
         WHERE {where}
           AND (c.tsv @@ q
                OR (%(patterns)s::text[] IS NOT NULL AND c.doc_id ILIKE ANY(%(patterns)s::text[])))
-        ORDER BY score DESC
+        ORDER BY score DESC, c.id
         LIMIT %(k)s
     """
     with connect() as conn:
