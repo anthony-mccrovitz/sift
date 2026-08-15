@@ -10,6 +10,7 @@ for an opinion:
     abstention            did the system decline when the answer is absent
     false abstention      did it decline when the answer was right there
     latency               p50 / p95 retrieval time
+    determinism           does an identical second run return identical results
 
 Retrieval metrics need no LLM at all. Citation and abstention metrics do call
 the LLM (they are properties of a generated answer), so they are skipped
@@ -35,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sift.answer import answer_question  # noqa: E402
 from sift.config import settings  # noqa: E402
+from sift.db import session_settings  # noqa: E402
 from sift.llm import llm_available  # noqa: E402
 from sift.retrieval.search import hybrid_search  # noqa: E402
 from sift.retrieval.router import route  # noqa: E402
@@ -85,6 +87,15 @@ def evaluate_retrieval(questions: list[dict], k: int, with_llm: bool) -> list[Qu
 
     embed_query("warmup")
 
+    # The database needs no equivalent warm-up pass here, and it is worth saying
+    # why, because the obvious guess is wrong. CI evaluates immediately after a
+    # bulk load, and roughly one clean build in four used to fail on latency at
+    # p50 330ms against a 250ms budget. That is not a cold cache -- every query
+    # was slow, not just the first -- it was autovacuum waking up on a freshly
+    # written table and competing with the queries being timed. A warm-up pass
+    # here was tried and did not fix it. The fix is in the loader, which now
+    # does that housekeeping itself: scripts/fixture.py, load_fixture.
+
     for q in questions:
         gold = q.get("gold_doc_ids") or []
         decision = route(q["question"])
@@ -130,6 +141,62 @@ def evaluate_retrieval(questions: list[dict], k: int, with_llm: bool) -> list[Qu
         results.append(result)
 
     return results
+
+
+# Forces sequential scans onto parallel workers, which changes the order tied
+# rows arrive in and therefore which of them survives a LIMIT. The point is to
+# make the repeat pass run under a *different plan*, not merely a second time.
+_PERTURBED_PLANNER = {
+    "max_parallel_workers_per_gather": "4",
+    "parallel_setup_cost": "0",
+    "parallel_tuple_cost": "0",
+    "min_parallel_table_scan_size": "0",
+}
+
+
+def check_determinism(questions: list[dict], k: int, baseline: list[QuestionResult]) -> list[str]:
+    """Re-run retrieval under a different query plan and report what changed.
+
+    This exists because the gate was, for a while, quietly lying. Both retrievers
+    ended in `ORDER BY <score> LIMIT k` with no tiebreak, and ts_rank_cd ties
+    constantly, so which of the tied rows survived the LIMIT was the executor's
+    choice -- stable enough to look fine, unstable enough that the same corpus
+    and the same code produced MRR 0.9115 on one run and 0.9125 on the next.
+
+    A regression gate that moves on its own is worse than no gate. It spends the
+    team's trust on false reds, and it hides real regressions inside its own
+    noise floor.
+
+    Note what this check is *not*: simply running the eval twice. That was the
+    first version of it, and it passed happily with the bug reintroduced --
+    consecutive runs pick the same plan, so they agree with each other while both
+    remain arbitrary. Two runs agreeing is not evidence of determinism; it is
+    evidence that nothing perturbed them. So the repeat pass deliberately runs
+    under different planner settings, and the question it asks is the one that
+    actually matters: does the answer depend on how Postgres chose to execute it?
+
+    Retrieval only, so it costs one extra pass over the question set (a few
+    seconds) and never touches the LLM.
+
+    One limit worth stating: the perturbation only bites if the server can
+    actually launch parallel workers. Where it cannot, the repeat pass degrades
+    to a plain second run and the check gets weaker rather than wrong -- it can
+    still fail, it just has fewer ways to.
+    """
+    with session_settings(**_PERTURBED_PLANNER):
+        repeat = evaluate_retrieval(questions, k=k, with_llm=False)
+    by_id = {r.id: r for r in repeat}
+
+    failures = []
+    for first in baseline:
+        second = by_id.get(first.id)
+        if second and first.retrieved_doc_ids != second.retrieved_doc_ids:
+            failures.append(
+                f"{first.id} retrieved different documents under a different query plan\n"
+                f"      run 1: {first.retrieved_doc_ids}\n"
+                f"      run 2: {second.retrieved_doc_ids}"
+            )
+    return failures
 
 
 def summarise(results: list[QuestionResult], with_llm: bool) -> dict[str, Any]:
@@ -218,6 +285,11 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=REPO_ROOT / "benchmarks" / "latest_retrieval.json")
     parser.add_argument("--no-llm", action="store_true", help="skip answer-level metrics even if a key exists")
     parser.add_argument("--no-gate", action="store_true", help="report metrics but always exit 0")
+    parser.add_argument(
+        "--skip-determinism",
+        action="store_true",
+        help="skip the repeat-run determinism check (it costs one extra retrieval pass)",
+    )
     args = parser.parse_args()
 
     questions = load_eval_set()
@@ -229,7 +301,13 @@ def main() -> int:
     print(f"LLM judge/answering: {'enabled' if with_llm else 'DISABLED (retrieval metrics only)'}\n")
 
     results = evaluate_retrieval(questions, k=k, with_llm=with_llm)
+
+    nondeterminism: list[str] = []
+    if not args.skip_determinism:
+        nondeterminism = check_determinism(questions, k=k, baseline=results)
+
     metrics = summarise(results, with_llm=with_llm)
+    metrics["deterministic"] = None if args.skip_determinism else not nondeterminism
 
     print("-" * 62)
     for key, value in metrics.items():
@@ -267,6 +345,14 @@ def main() -> int:
     print(f"\nWrote {args.output}")
 
     failures = check_thresholds(metrics, thresholds)
+    if nondeterminism:
+        # Listed first: every other number in this report is unreliable while
+        # this is true, so fixing it comes before reading them.
+        failures = [
+            f"retrieval is not deterministic -- {len(nondeterminism)} question(s) "
+            f"returned different documents under a different query plan",
+            *nondeterminism,
+        ] + failures
     if failures:
         print("\nQUALITY GATE FAILED:")
         for failure in failures:

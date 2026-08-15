@@ -239,6 +239,44 @@ def test_preflight_message_names_install_commands():
     assert "poppler-utils tesseract-ocr" in message
 
 
+# ---------------------------------------------------------------------------
+# session settings (used by the eval's determinism check)
+# ---------------------------------------------------------------------------
+
+
+def test_session_settings_apply_and_restore():
+    """Nesting must not leak: the eval perturbs the planner for one pass only."""
+    from sift import db
+
+    assert db._SESSION_GUCS == {}
+    with db.session_settings(max_parallel_workers_per_gather="4"):
+        assert db._SESSION_GUCS == {"max_parallel_workers_per_gather": "4"}
+        with db.session_settings(enable_seqscan="off"):
+            assert db._SESSION_GUCS["enable_seqscan"] == "off"
+            assert db._SESSION_GUCS["max_parallel_workers_per_gather"] == "4"
+        assert "enable_seqscan" not in db._SESSION_GUCS
+    assert db._SESSION_GUCS == {}
+
+
+def test_session_settings_restore_even_when_the_body_raises():
+    from sift import db
+
+    with pytest.raises(RuntimeError):
+        with db.session_settings(enable_seqscan="off"):
+            raise RuntimeError("boom")
+    assert db._SESSION_GUCS == {}
+
+
+def test_session_settings_rejects_a_non_identifier_name():
+    """set_config parameterises the value but not the name."""
+    from sift import db
+
+    with pytest.raises(ValueError):
+        with db.session_settings(**{"enable_seqscan; DROP TABLE chunks": "off"}):
+            pass
+    assert db._SESSION_GUCS == {}
+
+
 def test_preflight_module_imports_without_the_parsing_stack():
     """Regression: this check must not drag in unstructured.
 

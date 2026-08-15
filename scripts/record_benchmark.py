@@ -106,6 +106,13 @@ def main() -> int:
         f"| Median retrieval latency | **{metrics.get('retrieval_p50_ms', '-')} ms** |\n"
         f"| p95 retrieval latency | {metrics.get('retrieval_p95_ms', '-')} ms |\n"
     )
+    if metrics.get("deterministic") is not None:
+        # Worth a row of its own. This was measured, not assumed, and for a
+        # while it was false without anybody noticing.
+        table += (
+            f"| Identical results under a different query plan "
+            f"| **{'yes' if metrics['deterministic'] else 'NO'}** |\n"
+        )
     if "citation_validity" in metrics:
         table += f"| Citation validity | **{metrics['citation_validity']}** |\n"
     if "abstention_rate" in metrics:
