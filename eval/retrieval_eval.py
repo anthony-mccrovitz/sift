@@ -6,6 +6,12 @@ for an opinion:
 
     recall@k              did the gold document get retrieved at all
     MRR                   how high up
+    context precision     of the distinct documents retrieved, how many were
+                          relevant (RAGAS IDBasedContextPrecision, no judge)
+    context recall        of the gold documents, how many were retrieved
+                          (RAGAS IDBasedContextRecall, no judge)
+    passage precision     of the k passages given to the model, how many came
+                          from a gold document
     citation validity     did every citation point at a real retrieved passage
     abstention            did the system decline when the answer is absent
     false abstention      did it decline when the answer was right there
@@ -55,6 +61,9 @@ class QuestionResult:
     retrieved_doc_ids: list[str] = field(default_factory=list)
     hit: bool = False
     reciprocal_rank: float = 0.0
+    context_precision: float = 0.0
+    context_recall: float = 0.0
+    passage_precision: float = 0.0
     retrieval_ms: int = 0
     routing_mode: str = ""
     # Only populated when an LLM is configured.
@@ -130,6 +139,10 @@ def evaluate_retrieval(questions: list[dict], k: int, with_llm: bool) -> list[Qu
                     result.hit = True
                     result.reciprocal_rank = 1.0 / rank
                     break
+            result.context_precision, result.context_recall = id_based_context_scores(
+                retrieved, gold
+            )
+            result.passage_precision = passage_precision(retrieved, gold)
 
         if with_llm:
             answer = answer_question(q["question"], top_k=k)
@@ -152,6 +165,62 @@ _PERTURBED_PLANNER = {
     "parallel_tuple_cost": "0",
     "min_parallel_table_scan_size": "0",
 }
+
+
+def id_based_context_scores(retrieved: list[str], gold: list[str]) -> tuple[float, float]:
+    """Context precision and recall over document ids. No LLM, no key.
+
+    These are two of the four RAGAS metrics, and they are the two that never
+    needed a judge. RAGAS ships `IDBasedContextPrecision` and
+    `IDBasedContextRecall` for exactly this case, and both are set arithmetic
+    over ids rather than a model's opinion.
+
+    Computed here rather than by importing RAGAS, because pulling the framework
+    and the langchain stack into the *free* tier would add about ninety seconds
+    of install to a gate whose entire value is being cheap enough to run on every
+    pull request including forks. Agreement is verified rather than assumed --
+    tests/test_ragas_agreement.py runs RAGAS's own implementation over the same
+    inputs and asserts the numbers match.
+
+    That test earned itself immediately. My first version divided by the number
+    of retrieved *passages*; RAGAS deduplicates to distinct document ids first,
+    so the two disagreed (0.5 against 0.4) the moment a document appeared twice
+    in the results -- which, with six chunks drawn from a handful of documents,
+    is most of the time. RAGAS's definition is the one that ships under RAGAS's
+    name. The passage-level number is still worth having and still reported, as
+    `passage_precision`, because it answers a different question.
+    """
+    if not gold or not retrieved:
+        # Unanswerable questions have no gold documents. Scoring them would
+        # reward retrieving nothing; abstention_rate is their measure.
+        return 0.0, 0.0
+
+    retrieved_set, gold_set = set(retrieved), set(gold)
+    precision = len(retrieved_set & gold_set) / len(retrieved_set)
+    recall = len(gold_set & retrieved_set) / len(gold_set)
+    return precision, recall
+
+
+def passage_precision(retrieved: list[str], gold: list[str]) -> float:
+    """What fraction of the k passages handed to the model came from a gold doc.
+
+    Deliberately not RAGAS's context_precision, which deduplicates to distinct
+    documents. Both are worth knowing and they answer different questions:
+
+        context_precision   of the distinct documents retrieved, how many were
+                            relevant -- document-level noise
+        passage_precision   of the six passages actually occupying the context
+                            window, how many were on-target -- how much of the
+                            model's attention budget was spent well
+
+    The deduplicated version is also jumpy at this scale: six chunks from the
+    gold document alone score 1.0, and adding a single distractor document
+    halves it to 0.5, which is a large move for a small change.
+    """
+    if not gold or not retrieved:
+        return 0.0
+    gold_set = set(gold)
+    return sum(doc_id in gold_set for doc_id in retrieved) / len(retrieved)
 
 
 def check_determinism(questions: list[dict], k: int, baseline: list[QuestionResult]) -> list[str]:
@@ -210,6 +279,15 @@ def summarise(results: list[QuestionResult], with_llm: bool) -> dict[str, Any]:
         "unanswerable": len(unanswerable),
         "recall_at_k": round(sum(r.hit for r in answerable) / max(1, len(answerable)), 4),
         "mrr": round(sum(r.reciprocal_rank for r in answerable) / max(1, len(answerable)), 4),
+        "id_based_context_precision": round(
+            sum(r.context_precision for r in answerable) / max(1, len(answerable)), 4
+        ),
+        "id_based_context_recall": round(
+            sum(r.context_recall for r in answerable) / max(1, len(answerable)), 4
+        ),
+        "passage_precision": round(
+            sum(r.passage_precision for r in answerable) / max(1, len(answerable)), 4
+        ),
         "retrieval_p50_ms": int(statistics.median(latencies)) if latencies else 0,
         "retrieval_p95_ms": int(
             statistics.quantiles(latencies, n=20)[-1] if len(latencies) >= 20 else max(latencies, default=0)
@@ -261,6 +339,9 @@ def check_thresholds(metrics: dict[str, Any], thresholds: dict[str, Any]) -> lis
 
     check_min("recall_at_k")
     check_min("mrr")
+    check_min("id_based_context_precision")
+    check_min("id_based_context_recall")
+    check_min("passage_precision")
     check_min("citation_validity")
     check_min("abstention_rate")
 

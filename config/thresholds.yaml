@@ -26,6 +26,33 @@ retrieval:
   # Mean reciprocal rank of the first gold document.
   mrr: 0.60
 
+  # Two of RAGAS's four metrics, computed without a judge.
+  #
+  # RAGAS's context_precision and context_recall are LLM-judged by default, but
+  # it also ships IDBasedContextPrecision and IDBasedContextRecall, which score
+  # by comparing retrieved document ids against reference ids -- set arithmetic,
+  # no model, no key. The eval set already carries gold_doc_ids, so these cost
+  # nothing and can gate on every pull request instead of only where a secret
+  # exists. They keep RAGAS's exact names because they are RAGAS's exact
+  # definitions; tests/test_ragas_agreement.py asserts the numbers match.
+  #
+  # Do not confuse these with the `ragas:` entries below. Those are the
+  # LLM-judged versions and they measure something different -- whether the
+  # retrieved *text* is on-topic, rather than whether the retrieved *documents*
+  # were the right ones.
+  #
+  # Measured 0.6391 / 0.9141 on the CI fixture and 0.5776 / 0.9062 on the full
+  # corpus. Floors sit below the full-corpus number, which is the lower of the two.
+  id_based_context_precision: 0.50
+  id_based_context_recall: 0.85
+
+  # Of the k passages actually handed to the model, what fraction came from a
+  # gold document. Deliberately not the deduplicated version above: this one
+  # measures how much of the context window was spent well, and it moves more
+  # smoothly, because one distractor document does not halve it.
+  # Measured 0.724 on the fixture, 0.6615 on the full corpus.
+  passage_precision: 0.55
+
   # Fraction of emitted citations that point at a passage actually retrieved.
   # Anything below 1.0 means the model invented a source, which is the one
   # failure this project exists to prevent. There is no acceptable slack here.

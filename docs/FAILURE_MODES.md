@@ -440,6 +440,43 @@ regression.
 
 ---
 
+## 16. I reimplemented a metric and got the definition wrong
+
+**Symptom.** The test written to prove a reimplementation was faithful failed on
+its first run, on three of six cases.
+
+**Cause.** Two of RAGAS's four metrics never needed an LLM —
+`IDBasedContextPrecision` and `IDBasedContextRecall` compare retrieved document
+ids against reference ids, and the eval set already carries those ids. Moving
+them into the free tier meant computing them directly, because importing RAGAS
+and the langchain stack would add roughly ninety seconds of install to a gate
+whose whole value is being cheap enough to run on every pull request.
+
+My version divided by the number of retrieved *passages*. RAGAS deduplicates to
+distinct document ids first. With six chunks drawn from a handful of documents,
+a document appears twice most of the time, so the two disagreed constantly —
+0.5 against 0.4 on the first case that hit it.
+
+**Handling.** RAGAS's definition ships under RAGAS's name. The passage-level
+number was worth keeping, so it stayed under a name that says what it is,
+`passage_precision`, with a test asserting the two remain different. They answer
+different questions: how many distinct retrieved documents were relevant, versus
+how much of the model's context window was spent well.
+
+**Why it matters.** The reimplementation was a reasonable trade and it was also
+wrong, and those are not in tension. What made it safe was deciding up front
+that a reimplemented metric has to prove agreement rather than assert it, and
+writing that test before trusting the number.
+
+Worth noting what the failure was *not*: nothing crashed, and both numbers were
+plausible. A 0.4 and a 0.5 both look like reasonable context precision. Had the
+test not existed, the metric would have gone into a threshold file, gated
+merges, and been quoted in a README under a name that implied a definition it
+did not implement. The class of bug this repository keeps finding is the one
+where everything looks fine.
+
+---
+
 ## Still open
 
 - **q017 retrieval miss.** "What change did the rule make to references to the

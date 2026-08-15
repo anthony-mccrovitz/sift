@@ -52,14 +52,30 @@ the exact drift this project exists to catch.
 | MRR | **0.8812** |
 | Documents parsed | **460/500** |
 | Chunks indexed | 55294 |
-| Median retrieval latency | **218 ms** |
-| p95 retrieval latency | 431 ms |
+| Median retrieval latency | **231 ms** |
+| p95 retrieval latency | 526 ms |
 | Identical results under a different query plan | **yes** |
 <!-- RESULTS:END -->
 
 Retrieval metrics are deterministic and need no API key — they run on every pull
-request. RAGAS metrics need an LLM judge and run separately. See
-[Evaluation](#evaluation).
+request. See [Evaluation](#evaluation).
+
+That now includes two of RAGAS's four metrics. RAGAS's `context_precision` and
+`context_recall` are LLM-judged by default, but it also ships
+`IDBasedContextPrecision` and `IDBasedContextRecall`, which compare retrieved
+document ids against reference ids — set arithmetic, no model, no key. The eval
+set already carries `gold_doc_ids`, so these cost nothing and gate on every pull
+request rather than only where a secret exists:
+
+| Metric | full corpus | CI fixture | floor |
+|---|---|---|---|
+| `id_based_context_precision` | 0.5776 | 0.6391 | 0.50 |
+| `id_based_context_recall` | 0.9062 | 0.9141 | 0.85 |
+| `passage_precision` | 0.6615 | 0.7240 | 0.55 |
+
+Only **faithfulness** and **answer_relevancy** genuinely need a judge — one is
+entailment checking over each claim, the other generates questions from the
+answer. Those two remain unmeasured, and are reported as unmeasured.
 
 **Full corpus vs. the CI sample.** Same questions, same code, different amounts
 of competition:
@@ -312,6 +328,31 @@ If the only gate needed a paid key, pull requests from forks would silently skip
 it — and "CI enforces answer quality" would be false in exactly the case where
 you least control the code. Tier 1 always runs.
 
+Which makes it worth asking, per metric, whether it *actually* needs the judge
+rather than assuming the tier it shipped in. Two of RAGAS's four did not:
+`IDBasedContextPrecision` and `IDBasedContextRecall` score by comparing
+retrieved document ids to reference ids, and the eval set already carries those
+ids. Both moved down into the free tier, so they now gate on every pull request
+including forks instead of only where a secret exists.
+
+They are computed directly rather than by importing RAGAS, because pulling the
+framework and the langchain stack into the free tier would add roughly ninety
+seconds of install to a gate whose entire value is being cheap. That is a
+reimplementation, and a reimplemented metric can drift from the definition it
+claims to implement — so `tests/test_ragas_agreement.py` runs RAGAS's own
+classes over the same inputs and asserts the numbers match. It runs in the
+RAGAS job, where RAGAS is installed, and before the API-key check, so it gates
+even when the judge is skipped.
+
+That test paid for itself on its first run by failing. My version divided by the
+number of retrieved *passages*; RAGAS deduplicates to distinct document ids
+first, so the two disagreed — 0.5 against 0.4 — as soon as a document appeared
+twice in the results, which with six chunks drawn from a handful of documents is
+most of the time. RAGAS's definition now ships under RAGAS's name, and the
+passage-level number is kept separately as `passage_precision` because it
+answers a different question: not how many distinct retrieved documents were
+relevant, but how much of the model's context window was spent well.
+
 ### The corpus is frozen, and the gate runs on a sample of it
 
 CI loads a committed fixture (`eval/fixtures/corpus.jsonl.gz`) rather than
@@ -502,11 +543,14 @@ table, so "what happened to document X" is a query.
 - **The eval set needs a human pass.** It was drafted from real retrieved
   passages and each answer is checkable against its cited page — but an eval set
   nobody has read is a liability, because it gates CI on unverified assertions.
-- **The RAGAS tier is wired up but not yet measured.** The gate, thresholds and
-  workflow all exist and the judge imports cleanly; no run has been recorded, so
-  the faithfulness column in [`benchmarks/history.md`](benchmarks/history.md)
-  reads `-`. It needs an API key, and an unmeasured metric is quoted as
-  unmeasured rather than estimated.
+- **Two of the four RAGAS metrics are still unmeasured.** `faithfulness` and
+  `answer_relevancy` genuinely need a judge — one checks entailment claim by
+  claim, the other generates questions from the answer — so the faithfulness
+  column in [`benchmarks/history.md`](benchmarks/history.md) reads `-` until
+  someone runs it with a key. The gate, thresholds and workflow all exist and
+  the judge imports cleanly in CI. An unmeasured metric is quoted as unmeasured
+  rather than estimated. The other two moved into the free tier and are measured
+  above.
 - **The RAGAS judge shares a model with the generator.** A model grading its own
   output is measurably more generous. When those four numbers do land, treat them
   as regression detectors, not absolute quality.

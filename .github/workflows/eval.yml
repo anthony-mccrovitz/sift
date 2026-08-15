@@ -160,6 +160,14 @@ jobs:
         # as a green "skipped" gate rather than a red one. Fail loudly instead.
         run: python -c "import ragas; print('ragas', ragas.__version__)"
 
+      - name: Check our context metrics still agree with RAGAS
+        # The free tier computes id-based context precision/recall itself rather
+        # than importing RAGAS, to keep its install cheap. This is the job that
+        # has RAGAS installed, so this is where that reimplementation gets
+        # checked against the real thing. It runs before the API-key check on
+        # purpose: it costs nothing and must gate even when the judge is skipped.
+        run: pip install pytest==8.4.2 && python -m pytest tests/test_ragas_agreement.py -q
+
       - name: Apply schema
         run: psql "$SIFT_DB_URL" -f sql/001_schema.sql
 
