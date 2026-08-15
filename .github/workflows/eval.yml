@@ -5,8 +5,13 @@ name: Evaluation Gate
 #
 # Two gates, split by what they cost to run:
 #
-#   retrieval-gate  Deterministic, no API key, ~3 minutes. Runs on EVERY pull
-#                   request including forks. This is the gate that always holds.
+#   retrieval-gate  Deterministic, no API key. Runs on EVERY pull request
+#                   including forks -- this is the gate that always holds.
+#                   Budget ~10-12 minutes, most of it re-embedding the fixture's
+#                   ~14k chunks on a 2-core runner. Embeddings are recomputed
+#                   rather than committed because 14k x 384 floats is far larger
+#                   than the text they come from, and a pinned model makes the
+#                   recomputation deterministic anyway.
 #   ragas-gate      LLM-judged, costs money, needs a repository secret. Runs on
 #                   pull requests from this repo and on pushes to main.
 #
@@ -33,7 +38,7 @@ jobs:
   retrieval-gate:
     name: Retrieval gate (no API key)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     services:
       db:
@@ -65,7 +70,7 @@ jobs:
 
       - name: Install dependencies
         # Only what retrieval needs. Skipping the parsing stack (unstructured,
-        # onnxruntime, torch vision deps) takes this job from ~8 min to ~3.
+        # onnxruntime, torch vision deps) saves several minutes of install.
         run: |
           python -m pip install --upgrade pip
           pip install \
