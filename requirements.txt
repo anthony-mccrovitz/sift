@@ -24,7 +24,12 @@ pydantic-settings==2.13.0
 
 # --- LLM providers (pluggable; install both, pick one at runtime) -------------
 anthropic==0.122.0
-openai==3.0.0
+# Held at the 2.x line by langchain-openai 0.3.35, which requires openai<3.0.0.
+# That constraint comes from the same langchain-0.3 pin block documented under
+# Evaluation below, so this line is part of it -- bumping openai alone makes the
+# RAGAS gate unresolvable at install time. sift/llm.py only uses
+# client.chat.completions.create, which is unchanged across 2.x and 3.x.
+openai==2.54.0
 
 # --- Misc ---------------------------------------------------------------------
 httpx==0.28.1

@@ -76,7 +76,7 @@ jobs:
           pip install \
             "sentence-transformers==5.7.0" "psycopg[binary]==3.3.4" "pgvector==0.5.0" \
             "pydantic==2.13.1" "pydantic-settings==2.13.0" "PyYAML==6.0.3" \
-            "tenacity==9.1.2" "anthropic==0.122.0" "openai==3.0.0"
+            "tenacity==9.1.2" "anthropic==0.122.0" "openai==2.54.0"
 
       - name: Apply schema
         run: psql "$SIFT_DB_URL" -f sql/001_schema.sql
@@ -147,7 +147,7 @@ jobs:
           pip install \
             "sentence-transformers==5.7.0" "psycopg[binary]==3.3.4" "pgvector==0.5.0" \
             "pydantic==2.13.1" "pydantic-settings==2.13.0" "PyYAML==6.0.3" \
-            "tenacity==9.1.2" "anthropic==0.122.0" "openai==3.0.0" \
+            "tenacity==9.1.2" "anthropic==0.122.0" "openai==2.54.0" \
             "ragas==0.4.3" "langchain-community==0.3.31" "langchain-core==0.3.86" \
             "langchain-anthropic==0.3.22" "langchain-openai==0.3.35" \
             "langchain-huggingface==0.3.1"
