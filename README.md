@@ -49,11 +49,12 @@ the exact drift this project exists to catch.
 | Metric | Score |
 |---|---|
 | Recall@6 | **0.9375** |
-| MRR | **0.8578** |
+| MRR | **0.8812** |
 | Documents parsed | **460/500** |
 | Chunks indexed | 55294 |
-| Median retrieval latency | **194 ms** |
-| p95 retrieval latency | 393 ms |
+| Median retrieval latency | **218 ms** |
+| p95 retrieval latency | 431 ms |
+| Identical results under a different query plan | **yes** |
 <!-- RESULTS:END -->
 
 Retrieval metrics are deterministic and need no API key — they run on every pull
@@ -66,13 +67,20 @@ of competition:
 | | full corpus (460 docs) | CI fixture (279 docs) |
 |---|---|---|
 | Recall@6 | 0.9375 | 0.9375 |
-| MRR | **0.8578** | 0.9125 |
-| p50 latency | 194 ms | 86 ms |
+| MRR | **0.8812** | 0.9115 |
+| p50 latency | 218 ms | 99 ms |
 
 Recall is identical because the same two questions fail either way. MRR is
-**0.055 higher on the sample** — with 181 fewer documents competing, gold
+**0.030 higher on the sample** — with 181 fewer documents competing, gold
 passages rank higher. That gap is the cost of a fast gate, and it is the reason
 the headline above quotes the full-corpus number.
+
+Both MRR figures differ from the ones this README carried previously (0.8578 and
+0.9125). Nothing about retrieval quality improved: the earlier numbers were
+single draws from a distribution, because tied rows were being dropped by a
+`LIMIT` in whatever order the query planner happened to produce them. The gate
+now re-runs every question under different planner settings and fails if any
+answer changes — see [failure mode 13](docs/FAILURE_MODES.md).
 
 **Where it still fails.** Two questions miss, both documented rather than
 tuned away:
@@ -139,7 +147,7 @@ documents from 2024" is a `WHERE` clause, not a separate filtered-search API.
 ## What broke and how I handled it
 
 The full account is in **[docs/FAILURE_MODES.md](docs/FAILURE_MODES.md)**. The
-four worth reading:
+six worth reading:
 
 ### `hi_res` produced the cleanest-looking and least readable text
 
@@ -194,6 +202,46 @@ is guarded by "is an API key present?", so a gate that cannot import reports
 run is worse than no gate, because it manufactures confidence. Pinning the whole
 langchain family to the 0.3 line fixed it, and CI now runs an explicit
 `python -c "import ragas"` so this can only ever fail loudly.
+
+### My first guard against a nondeterministic gate did not work
+
+Two evaluation runs against an untouched database returned MRR 0.9115 and 0.9125.
+Both retrievers ended in `ORDER BY <score> LIMIT k` with no tiebreak, and
+`ts_rank_cd` ties constantly, so *which* of hundreds of tied rows survived the
+`LIMIT` was the query planner's choice. Every published MRR had been one draw
+from a distribution.
+
+The fix is a total order on both retrievers. The lexical side takes
+`ORDER BY score DESC, c.id` for free. The dense side cannot — `EXPLAIN` shows
+that adding `c.id` to the ordering makes the planner abandon the HNSW index for a
+full sequential scan — so that query became two-stage: an inner index-ordered
+`LIMIT`, an outer deterministic sort.
+
+The part worth keeping is what happened next. I added a check that ran the
+evaluation twice and compared. **It passed with the bug still in place.**
+Consecutive runs pick the same plan, so they agree with each other while both
+remain arbitrary. Two runs agreeing is not evidence of determinism; it is
+evidence that nothing perturbed them. The check that works runs the second pass
+under deliberately different planner settings and asks whether the answer depends
+on how Postgres chose to execute it. Reintroduce the missing tiebreak and it now
+fails ten questions.
+
+### The gate failed one build in four, and it was the gate's own fault
+
+Found by running the whole CI sequence — create database, apply schema, load
+fixture, evaluate — six times instead of once. One in four failed on latency at
+p50 330ms against a 250ms budget, while the rest sat near 100ms.
+
+Not a cold cache, which was the first guess: a cold cache makes the *first*
+queries slow, and here every query was slow. It was autovacuum waking up on a
+freshly bulk-loaded table and competing with the queries being timed. The loader
+now does that housekeeping itself. Six consecutive clean builds then landed at
+p50 97–101ms.
+
+A gate that fails a quarter of the time for reasons unrelated to the pull request
+does not enforce quality — it teaches people to re-run CI until it goes green,
+which is the exact habit that lets a real regression through. A single green run
+is not evidence that a gate is stable; it is one sample.
 
 ---
 
@@ -267,15 +315,27 @@ you least control the code. Tier 1 always runs.
 ### The corpus is frozen, and the gate runs on a sample of it
 
 CI loads a committed fixture (`eval/fixtures/corpus.jsonl.gz`) rather than
-re-downloading 500 government PDFs on every push. Embeddings are recomputed at
-load time from a pinned model rather than stored, keeping the fixture ~20×
-smaller and still deterministic. A metric change is therefore caused by **the
-code in the pull request**, not by what the Federal Register published overnight.
+re-downloading 500 government PDFs on every push. A metric change is therefore
+caused by **the code in the pull request**, not by what the Federal Register
+published overnight.
 
-The fixture is a **sample**, not the whole corpus. Re-embedding all ~49k chunks
-on a 2-core runner takes around eight minutes, which is too slow to sit in front
-of every pull request, so the fixture is capped by a chunk budget. Two rules keep
-it a valid benchmark:
+Embeddings are committed alongside the text, as float16. They used to be
+recomputed at load time — the model is pinned, so that was deterministic and kept
+the file far smaller. Then the gate got measured instead of estimated: a runner
+embeds about 9.5 chunks/sec, so recomputing 14k chunks took **24m34s of a 26m32s
+job**. Ninety-three percent of the gate was recomputing a pure function of text
+that was already in the repository. Storing the vectors costs ~11 MB and brings
+the load to about 20 seconds.
+
+That trade has a catch worth naming: stored vectors are only meaningful under the
+model that produced them. So the fixture records its embedding model on the first
+line and refuses to load under a different one. Without that, changing the model
+would load mismatched vectors and surface as collapsed recall — a true failure
+pointing at entirely the wrong cause.
+
+The fixture is a **sample**, not the whole corpus, capped by a chunk budget — at
+full size the file would be ~60 MB that every clone pays for. Two rules keep it a
+valid benchmark:
 
 - **Every gold document is included, budget or not.** Sampling a retrieval
   benchmark fails in one direction specifically: drop the wrong document and
@@ -452,6 +512,20 @@ table, so "what happened to document X" is a query.
   as regression detectors, not absolute quality.
 - **The router is rules, not an agent.** Deliberately. It is testable and
   debuggable, and it is described as what it is.
+- **Two builds of the same index are not identical, and that is not fixed.**
+  Given one index, the same query now returns the same answer, and the gate
+  enforces it. Given the same data, two *builds* still differ: HNSW assigns each
+  element a random level and pgvector does not draw it from a seedable
+  generator. Raising `hnsw.ef_search` from 40 to 200 cut the affected questions
+  from 10 of 36 to 3 of 36; it did not eliminate them, and no setting will
+  without an exact index. The gate compares metrics to thresholds rather than
+  document lists to a golden file, so it tolerates this —
+  [failure mode 14](docs/FAILURE_MODES.md) explains why the distinction matters.
+- **The determinism check tests one axis, not all of them.** It re-runs every
+  question under different planner settings, which is what caught the tie-order
+  bug. It does not prove retrieval is identical across machines or Postgres
+  versions, and if a server cannot launch parallel workers the perturbation gets
+  weaker rather than wrong.
 - **Two known retrieval misses** (`q017`, `q025`), left failing on purpose.
   `q017` needs query rewriting, which is not built; `q025` is an OCR question
   losing to a near-identical document in the same NASA series. The `ocr`

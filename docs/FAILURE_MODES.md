@@ -309,6 +309,137 @@ to get a wrong answer.
 
 ---
 
+## 13. The same corpus and the same code produced two different MRRs
+
+**Symptom.** Two evaluation runs against an untouched database returned MRR
+0.9115 and 0.9125. Eight of thirty-six questions retrieved a different set or
+order of documents; on q012 the gold document moved from rank 6 to rank 5.
+
+**Cause.** Both retrievers ended in `ORDER BY <score> LIMIT k` with no
+tiebreaker. `ts_rank_cd` ties constantly — every chunk matching the same terms
+the same number of times scores identically, and an identifier lookup gives a
+whole document the same `100 + epsilon`. When hundreds of rows tie, *which* `k`
+of them survive the `LIMIT` is entirely the executor's choice, and that choice
+moves with the query plan.
+
+This is not the same bug as #8. That one was tie-breaking inside rank fusion,
+and it was fixed. This one is upstream: the ranked lists *going into* fusion were
+already arbitrary, so fusing them deterministically produced a stable function of
+unstable inputs.
+
+**Handling.** A total order on both retrievers. The lexical side takes
+`ORDER BY score DESC, c.id`, which is free because that plan already sorts. The
+dense side cannot: adding `c.id` to the ordering makes a compound sort key the
+HNSW index cannot serve, and `EXPLAIN` confirms the planner abandons the index
+for a full sequential scan. So the dense query became two-stage — an inner
+index-ordered `LIMIT`, an outer `ORDER BY distance, id`.
+
+Distance ties are real here rather than theoretical: government PDFs repeat
+boilerplate headers and footers, identical text embeds to an identical vector,
+and identical vectors are exactly equidistant from any query.
+
+**Why it matters.** Two things, and the second is the one worth keeping.
+
+First, the number I had published was luck. The full-corpus MRR I recorded as
+0.8578 is 0.8812 once retrieval is deterministic — I had been reporting one draw
+from a distribution as though it were a measurement.
+
+Second, and worse: my first attempt at a guard against this did not work. I
+added a check that ran the evaluation twice and compared. It passed — with the
+bug still present. Consecutive runs pick the same plan, so they agree with each
+other while both remain arbitrary. Two runs agreeing is not evidence of
+determinism; it is evidence that nothing perturbed them.
+
+The check that works runs the second pass under deliberately different planner
+settings (`max_parallel_workers_per_gather=4` with the parallel costs zeroed) and
+asks whether the answer depends on how Postgres chose to execute it. Reintroduce
+the missing tiebreak and it fails ten questions. That is the difference between
+a test and a test that can fail.
+
+---
+
+## 14. Loading the same fixture twice does not build the same index
+
+**Symptom.** Found while verifying the fix for #13, by building the database
+twice from the byte-identical committed fixture and diffing the results. Three of
+thirty-six questions retrieved different documents. Recall and MRR happened to be
+unchanged — the differences did not land on a gold document — which is luck, not
+a guarantee.
+
+**Cause.** HNSW is an approximate index, and its graph depends on a random level
+assigned to each element at insert time. pgvector does not draw that from the
+generator `setseed()` controls, so there is no session-level seed that makes the
+build reproducible. I tried; it changed nothing, which is how I know rather than
+assume.
+
+**Handling.** Partial, and worth being precise about. Raising `hnsw.ef_search`
+makes the search walk more of the graph, so it depends less on the graph's exact
+shape. Measured across two clean builds:
+
+| `ef_search` | questions whose dense results changed |
+|---|---|
+| 40 (pgvector default) | 10 of 36 |
+| 200 | 3 of 36 |
+| 500 | 1 of 36 |
+
+500 is tempting and wrong. On the 14k-chunk fixture it costs nothing; on the full
+55k-chunk corpus it takes p50 from 199ms to 262ms, past the 250ms budget the
+project set itself. The setting is 200, where the full corpus sits at 225ms.
+Recall@6 and MRR are identical at every value tested — this bought stability, not
+accuracy.
+
+**Why it matters.** This one is unresolved and stays that way honestly. Two
+different things were being called "deterministic":
+
+- *Given this index, does the same query return the same answer?* Now yes, and
+  the gate enforces it under a perturbed query plan (#13).
+- *Given the same data, do two builds produce the same index?* **No.** Reduced
+  from 10 questions to 3, not eliminated, and not eliminable without an exact
+  index.
+
+The gate compares metrics to thresholds, not document lists to a golden file, so
+it tolerates this. But "our eval is deterministic" would be an overclaim, and the
+distinction above is the whole reason to say so carefully. A benchmark's error
+bars are part of the benchmark.
+
+---
+
+## 15. The gate failed one build in four, and it was the gate's own fault
+
+**Symptom.** Found by running the full CI sequence — create database, apply
+schema, load fixture, evaluate — six times in a row rather than once. One build
+in four failed on latency: p50 330ms against a 250ms budget, while the others sat
+near 100ms. Recall, MRR and determinism were identical every time.
+
+**Cause.** Not a cold cache, which was the first guess and the wrong one. A cold
+cache makes the *first* queries slow; here every query was slow. It was
+autovacuum, waking up on a freshly bulk-loaded 14k-row table and competing for
+I/O with the queries being timed. CI loads the fixture and starts timing
+immediately, so it hits this window every run and loses it sometimes.
+
+**Handling.** The loader now runs `VACUUM ANALYZE` itself after the bulk insert,
+which is ordinary practice after any bulk load and takes a couple of seconds.
+Doing the housekeeping deliberately beats racing a background worker that does it
+whenever it feels like it. Six consecutive clean builds then landed at p50 97–101ms.
+
+I also tried a warm-up pass over the question set before timing, on the cold-cache
+theory. It did **not** fix it — one build in five still failed — so it was
+removed rather than left in place looking like the fix. A mitigation that does not
+mitigate is worse than none, because the next person reads it as a solved problem.
+
+**Why it matters.** This is the same lesson as #13 arriving from a different
+direction. A gate that fails a quarter of the time for reasons unrelated to the
+pull request does not enforce quality — it teaches the team to re-run CI until it
+goes green, which is precisely the habit that lets a real regression through.
+
+The only reason this was found at all is that the sequence was run six times
+instead of once. A single green run is not evidence that a gate is stable; it is
+one sample. Flakiness is a property you have to go looking for, and the looking is
+cheap compared to what it costs to discover it in the middle of a real
+regression.
+
+---
+
 ## Still open
 
 - **q017 retrieval miss.** "What change did the rule make to references to the
