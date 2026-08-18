@@ -19,6 +19,7 @@ from unstructured.chunking.title import chunk_by_title
 from unstructured.staging.base import elements_from_dicts
 
 from sift.config import settings
+from sift.ingest.boundary import document_span
 
 # Element categories that carry no retrievable meaning. Keeping them pollutes
 # chunks with page furniture and, worse, wastes the LLM's context window.
@@ -61,6 +62,19 @@ def chunk_elements(
         for el in elements
         if el.category not in NOISE_CATEGORIES and (el.text or "").strip()
     ]
+    if not filtered:
+        return []
+
+    # Federal Register PDFs are page extracts from a daily issue, so a document
+    # sharing a page with its neighbours carries their text too. Trim to the span
+    # that is actually this document before chunking, not after: chunk boundaries
+    # computed over a neighbour's text put foreign sentences inside our chunks,
+    # and no amount of later filtering gets them back out.
+    #
+    # Non-FR documents pass through untouched -- document_span says so itself
+    # rather than the caller having to know which sources need it.
+    start, end, _reason = document_span([el.text or "" for el in filtered], doc_id)
+    filtered = filtered[start:end]
     if not filtered:
         return []
 

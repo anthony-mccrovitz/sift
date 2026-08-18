@@ -39,7 +39,7 @@ because the output is indistinguishable from a correct one.
 
 ## Results
 
-Measured on the **full local corpus** — 460 parsed documents, 55,294 chunks,
+Measured on the **full local corpus** — 460 parsed documents, 54,981 chunks,
 29 of them scanned — against 36 hand-checked questions. This is the number that
 describes the system. The CI gate runs on a smaller committed sample and scores
 slightly better; both are shown below, because reporting only the easier one is
@@ -51,9 +51,9 @@ the exact drift this project exists to catch.
 | Recall@6 | **0.9375** |
 | MRR | **0.8812** |
 | Documents parsed | **460/500** |
-| Chunks indexed | 55294 |
-| Median retrieval latency | **231 ms** |
-| p95 retrieval latency | 526 ms |
+| Chunks indexed | 54981 |
+| Median retrieval latency | **214 ms** |
+| p95 retrieval latency | 356 ms |
 | Identical results under a different query plan | **yes** |
 <!-- RESULTS:END -->
 
@@ -69,9 +69,9 @@ request rather than only where a secret exists:
 
 | Metric | full corpus | CI fixture | floor |
 |---|---|---|---|
-| `id_based_context_precision` | 0.5776 | 0.6391 | 0.50 |
+| `id_based_context_precision` | 0.5776 | 0.6417 | 0.50 |
 | `id_based_context_recall` | 0.9062 | 0.9141 | 0.85 |
-| `passage_precision` | 0.6615 | 0.7240 | 0.55 |
+| `passage_precision` | 0.6615 | 0.7292 | 0.55 |
 
 Only **faithfulness** and **answer_relevancy** genuinely need a judge — one is
 entailment checking over each claim, the other generates questions from the
@@ -80,14 +80,14 @@ answer. Those two remain unmeasured, and are reported as unmeasured.
 **Full corpus vs. the CI sample.** Same questions, same code, different amounts
 of competition:
 
-| | full corpus (460 docs) | CI fixture (279 docs) |
+| | full corpus (460 docs) | CI fixture (281 docs) |
 |---|---|---|
 | Recall@6 | 0.9375 | 0.9375 |
-| MRR | **0.8812** | 0.9115 |
-| p50 latency | 218 ms | 99 ms |
+| MRR | **0.8812** | 0.8958 |
+| p50 latency | 214 ms | 113 ms |
 
 Recall is identical because the same two questions fail either way. MRR is
-**0.030 higher on the sample** — with 181 fewer documents competing, gold
+**0.015 higher on the sample** — with 179 fewer documents competing, gold
 passages rank higher. That gap is the cost of a fast gate, and it is the reason
 the headline above quotes the full-corpus number.
 
@@ -105,7 +105,9 @@ tuned away:
   Office". The phrase is overwhelmingly associated with GAO documents, so
   retrieval returns GAO reports; the answer is in a Federal Register rule that
   renames the agency. A genuine limitation of lexical + dense retrieval without
-  query rewriting.
+  query rewriting — though this README asserted that for a while on the strength
+  of a mislabelled gold document, and only checking it made the claim true. See
+  [failure mode 17](docs/FAILURE_MODES.md).
 - **q025** is an OCR question whose answer sits in a 1967 microfiche scan that
   competes with a closely related NASA document from the same series.
 
@@ -163,7 +165,7 @@ documents from 2024" is a `WHERE` clause, not a separate filtered-search API.
 ## What broke and how I handled it
 
 The full account is in **[docs/FAILURE_MODES.md](docs/FAILURE_MODES.md)**. The
-six worth reading:
+seven worth reading:
 
 ### `hi_res` produced the cleanest-looking and least readable text
 
@@ -258,6 +260,34 @@ A gate that fails a quarter of the time for reasons unrelated to the pull reques
 does not enforce quality — it teaches people to re-run CI until it goes green,
 which is the exact habit that lets a real regression through. A single green run
 is not evidence that a gate is stable; it is one sample.
+
+### Two thirds of one source carried other documents' text
+
+No symptom. Nothing failed, the metrics were fine, and CI had been green over it
+for the life of the repository. It surfaced because a worksheet built for
+hand-checking the eval set sorted questions by how well each gold document
+supported its own answer, and q017 came last — the passage answering it carried
+the footer `[FR Doc. 2026-16630]` while being stored under `fr-2026-16687`.
+
+The Federal Register API gives a `pdf_url` per document, but the PDF behind it is
+a **page extract** from that day's issue. A rule starting halfway down a page
+inherits the top of it. **54 of 80** Federal Register documents held text
+belonging to another document; `fr-2026-16687` was 37 chunks of which six were
+its neighbours', including the opening of an unrelated FAA airworthiness
+directive.
+
+That is a citation-correctness bug, which is the one failure this project exists
+to prevent: quote a passage, attribute it to a document and page, be pointing at
+a different document. Every document ends with a machine-readable filing footer,
+so the span is trimmed at those boundaries before chunking. 54 affected documents
+became 6 — the remainder are those whose own footer never appears in the text,
+where trimming would be guessing, and they are left whole and labelled.
+
+The part worth keeping: this README explained q017's miss as a limit of dense
+retrieval without query rewriting. With the gold document corrected, q017 *still*
+misses — the explanation was right, and the evidence offered for it was a
+mislabelled chunk. Being accidentally right is indistinguishable from being right
+until someone checks.
 
 ---
 

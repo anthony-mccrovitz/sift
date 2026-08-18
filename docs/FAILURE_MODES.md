@@ -477,13 +477,75 @@ where everything looks fine.
 
 ---
 
+## 17. Two thirds of one source carried other documents' text
+
+**Symptom.** None. Nothing failed, nothing looked wrong, and the metrics were
+fine. It surfaced only because a worksheet built for hand-checking the eval set
+sorted questions by how well each gold document supported its own stated answer,
+and q017 came last at 0.643. The passage answering it carried the footer
+`[FR Doc. 2026-16630]` while being stored under `fr-2026-16687`.
+
+**Cause.** The Federal Register API gives a `pdf_url` per document, but the PDF
+behind it is a *page extract* from that day's issue. A rule beginning halfway
+down a page inherits the top of that page; one ending halfway down carries
+whatever starts underneath. So downloading document X also gets you the tail of
+X-1 and the head of X+1.
+
+Measured across the corpus: **54 of 80** Federal Register documents held at least
+one chunk belonging to another document. `fr-2026-16687` was 37 chunks, of which
+chunks 0-2 were the end of `fr-2026-16630` and chunks 34-36 were the beginning of
+an unrelated FAA airworthiness directive. Only 3-33 were the document.
+
+**Handling.** Every Federal Register document ends with its own filing footer —
+`[FR Doc. 2026-16687 Filed 8-13-26; 8:45 am]` — which is unambiguous and
+machine-readable. That marks the end; the last *foreign* footer before it marks
+where the previous document stopped. The trim happens on the element stream
+before chunking rather than after, because chunk boundaries computed across a
+neighbour's text bake foreign sentences into our chunks, and no later filter gets
+them back out.
+
+54 affected documents dropped to 6, and 313 chunks left the corpus. The remaining
+6 are the ones whose own footer never appears in the extracted text, where
+trimming would be guessing; `document_span` keeps them whole and returns
+`own-footer-not-found` so the reason travels with the decision instead of being
+absent from a log.
+
+**Why it matters.** Every chunk carries its `doc_id` into retrieval and back out
+as a citation. Foreign text under the wrong `doc_id` means the system can quote a
+passage, attribute it to a document and a page, and be pointing at a different
+document entirely — a confident, sourced, wrong answer, which is the one failure
+this project exists to prevent. It had been doing that on 68% of one source for
+the entire life of the repository, through every green CI run.
+
+And the part worth keeping. This README explained q017's miss as a limitation of
+dense retrieval without query rewriting. After correcting the gold document to
+`fr-2026-16630`, q017 *still* misses — retrieval really does return GAO reports
+for "General Accounting Office". The stated explanation was right. The evidence
+offered for it was a mislabelled chunk, and the two facts were independent.
+
+Being accidentally right is not the same as knowing. A plausible explanation that
+happens to be correct is indistinguishable, from the outside, from one that is
+not — and the only thing that separates them is having checked. That is the
+entire argument for the hand-verification pass, made by the tool built to do it,
+before a single question had been verified by hand.
+
+---
+
 ## Still open
 
 - **q017 retrieval miss.** "What change did the rule make to references to the
   General Accounting Office?" retrieves GAO reports, because the phrase "General
   Accounting Office" is overwhelmingly associated with GAO documents. The answer
   is in a Federal Register rule that renames it. Left failing on purpose — it is
-  a genuine limitation of lexical + dense retrieval without query rewriting.
+  a genuine limitation of lexical + dense retrieval without query rewriting, and
+  it stayed a miss after its gold document was corrected (see #17), which is what
+  makes that claim checked rather than merely plausible.
+- **6 Federal Register documents still carry a neighbour's text.** Their own
+  filing footer never appears in the extracted text, so the boundary cannot be
+  established without guessing. Down from 54; see #17.
+- **The eval set has still not had its human pass.** `scripts/verify_eval_set.py`
+  generates the worksheet, and finding #17 came out of building it, but only
+  q017 has actually been corrected. The other 35 remain as drafted.
 - **Rotated sidebar text still enters chunks.** Federal Register pages produce
   leading fragments like `1 S E L U R h t i` (a vertical "RULES" banner). It is
   filtered from the *probe* but not from chunk text. Low impact, not yet fixed.

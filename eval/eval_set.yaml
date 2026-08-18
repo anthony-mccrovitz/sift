@@ -171,8 +171,15 @@ questions:
     ground_truth: >-
       In 5 CFR 10.1 the words "General Accounting" are removed and replaced with
       "Government Accountability".
-    gold_doc_ids: [fr-2026-16687]
+    gold_doc_ids: [fr-2026-16630]
     category: factual
+    notes: >-
+      Gold document corrected from fr-2026-16687 to fr-2026-16630. The answer was
+      always in 16630; it looked like it was in 16687 because Federal Register
+      PDFs are page extracts and 16687's extract carried the tail of 16630. The
+      resulting miss was documented for a while as a limitation of dense
+      retrieval without query rewriting, which was the wrong explanation for a
+      mislabelled chunk. See sift/ingest/boundary.py.
 
   # --- NIST cybersecurity framework -------------------------------------
   - id: q018

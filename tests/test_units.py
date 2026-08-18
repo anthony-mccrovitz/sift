@@ -285,3 +285,70 @@ def test_preflight_module_imports_without_the_parsing_stack():
     turned a dependency-free check into a test that could not run in CI.
     """
     assert "unstructured" not in sys.modules
+
+
+# ---------------------------------------------------------------------------
+# Federal Register document boundaries
+# ---------------------------------------------------------------------------
+
+
+def _fr_elements():
+    """A page extract shaped like the real thing: previous doc, ours, next doc."""
+    return [
+        "in their place, 'Geospatial-Intelligence'.",                 # 0 prev doc
+        "In 10.1, remove 'General Accounting' and add 'Government "
+        "Accountability'. [FR Doc. 2026-16630 Filed 8-13-26; 8:45 am]",  # 1 prev ends
+        "Applicability date: This rule is effective September 14.",   # 2 ours starts
+        "II. Background HDP is a pay differential authorized by...",  # 3
+        "(3) Equipment installation. [FR Doc. 2026-16687 Filed "
+        "8-13-26; 8:45 am] BILLING CODE 6325-39-P",                   # 4 ours ends
+        "DEPARTMENT OF TRANSPORTATION Federal Aviation Admin",        # 5 next doc
+    ]
+
+
+def test_span_drops_the_previous_and_next_documents():
+    from sift.ingest.boundary import document_span
+
+    start, end, reason = document_span(_fr_elements(), "fr-2026-16687")
+    assert (start, end) == (2, 5)
+    assert reason == "trimmed"
+
+
+def test_span_keeps_everything_when_the_footer_is_absent():
+    """11 of 80 real documents have no own footer. Guessing would lose content."""
+    from sift.ingest.boundary import document_span
+
+    texts = ["some rule text", "more rule text"]
+    start, end, reason = document_span(texts, "fr-2026-16120")
+    assert (start, end) == (0, 2)
+    assert reason == "own-footer-not-found"
+
+
+def test_span_leaves_non_federal_register_documents_alone():
+    from sift.ingest.boundary import document_span
+
+    texts = ["GAO found that agencies did not...", "[FR Doc. 2026-16630 Filed]"]
+    assert document_span(texts, "gaoreports-nsiad-95-82") == (0, 2, "not-federal-register")
+
+
+def test_footer_regex_survives_en_dash_typesetting():
+    """The Federal Register types these with en-dashes, not hyphens."""
+    from sift.ingest.boundary import footers_in
+
+    assert footers_in("[FR Doc. 2026–16687 Filed 8–13–26; 8:45 am]") == ["2026-16687"]
+    assert footers_in("[FR Doc. 2026-16687 Filed]") == ["2026-16687"]
+
+
+def test_the_q017_passage_is_attributed_to_the_document_that_filed_it():
+    """Regression for the bug that made q017 look like a retrieval failure.
+
+    The passage answering q017 sits in the *previous* document's span. Before
+    the trim it was stored under fr-2026-16687 and the README explained the
+    resulting miss as a limit of dense retrieval. It was a mislabelled chunk.
+    """
+    from sift.ingest.boundary import document_span
+
+    texts = _fr_elements()
+    start, end, _ = document_span(texts, "fr-2026-16687")
+    kept = " ".join(texts[start:end])
+    assert "General Accounting" not in kept

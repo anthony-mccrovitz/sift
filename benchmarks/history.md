@@ -10,3 +10,4 @@ a table shows quality bleeding away over ten good-looking ones.
 | 2026-08-15 | `9b3bfb4` | 460/500 | 55294 | 0.9375 | 0.8812 | 199 | - | deterministic ORDER BY tiebreaks; embeddings committed to the fixture |
 | 2026-08-15 | `9b3bfb4` | 460/500 | 55294 | 0.9375 | 0.8812 | 218 | - | hnsw.ef_search 40 -> 200 to reduce cross-build variation |
 | 2026-08-15 | `f87bc78` | 460/500 | 55294 | 0.9375 | 0.8812 | 231 | - | id-based context metrics in the free tier; p50 is the median of 3 runs |
+| 2026-08-18 | `3576e73` | 460/500 | 54981 | 0.9375 | 0.8812 | 214 | - | Federal Register document boundaries trimmed; q017 gold corrected |
