@@ -570,9 +570,14 @@ table, so "what happened to document X" is a query.
 
 - **Tables are not reconstructed on scanned documents.** `ocr_only` was the
   right trade for this corpus and would be wrong for scanned financial tables.
-- **The eval set needs a human pass.** It was drafted from real retrieved
-  passages and each answer is checkable against its cited page — but an eval set
-  nobody has read is a liability, because it gates CI on unverified assertions.
+- **The eval set has now been verified, and it was not clean.** All 36 questions
+  were checked against their source text. One answer (`q023`) was wrong in the
+  worst available way: it asserted the exact framing its own source warns
+  against. Three more (`q029`, `q031`, `q032`) restated the question and
+  asserted nothing checkable, which cannot distinguish a good answer from a
+  vague one and silently inflates every judged metric. All are corrected, with
+  the reasoning recorded in the file. The remaining risk is that the same author
+  wrote and checked it.
 - **Two of the four RAGAS metrics are still unmeasured.** `faithfulness` and
   `answer_relevancy` genuinely need a judge — one checks entailment claim by
   claim, the other generates questions from the answer — so the faithfulness
