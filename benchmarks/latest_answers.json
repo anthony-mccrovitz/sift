@@ -1,0 +1,301 @@
+{
+  "generator": "Qwen/Qwen2.5-3B-Instruct (local, greedy)",
+  "note": "Answer-level metrics measured with a local generator, no API key. Latency here is inflated ~3x by GPU contention with the generator and should be read from a retrieval-only run instead. faithfulness and answer_relevancy are NOT here: they need an LLM judge.",
+  "scores": {
+    "citation_validity": 1.0,
+    "citations_emitted": 18,
+    "citations_invalid": 0,
+    "abstention_rate": 1.0,
+    "false_abstention_rate": 0.0625
+  },
+  "answers": [
+    {
+      "id": "q001",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q002",
+      "category": "quantitative",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q003",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q004",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q005",
+      "category": "quantitative",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q006",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q007",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q008",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q009",
+      "category": "filtered",
+      "abstained": true,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q010",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q011",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q012",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q013",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q014",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q015",
+      "category": "quantitative",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q016",
+      "category": "quantitative",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q017",
+      "category": "factual",
+      "abstained": true,
+      "hit": false,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q018",
+      "category": "filtered",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q019",
+      "category": "identifier",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q020",
+      "category": "filtered",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q021",
+      "category": "filtered",
+      "abstained": false,
+      "hit": true,
+      "citations": 3,
+      "invalid": 0
+    },
+    {
+      "id": "q022",
+      "category": "ocr",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q023",
+      "category": "ocr",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q024",
+      "category": "ocr",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q025",
+      "category": "ocr",
+      "abstained": false,
+      "hit": false,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q026",
+      "category": "identifier",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q027",
+      "category": "filtered",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q028",
+      "category": "identifier",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q029",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q030",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 1,
+      "invalid": 0
+    },
+    {
+      "id": "q031",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q032",
+      "category": "factual",
+      "abstained": false,
+      "hit": true,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q033",
+      "category": "unanswerable",
+      "abstained": true,
+      "hit": false,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q034",
+      "category": "unanswerable",
+      "abstained": true,
+      "hit": false,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q035",
+      "category": "unanswerable",
+      "abstained": true,
+      "hit": false,
+      "citations": 0,
+      "invalid": 0
+    },
+    {
+      "id": "q036",
+      "category": "unanswerable",
+      "abstained": true,
+      "hit": false,
+      "citations": 0,
+      "invalid": 0
+    }
+  ]
+}

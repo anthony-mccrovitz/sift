@@ -76,7 +76,14 @@ class Settings(BaseSettings):
     hnsw_ef_search: int = 200
 
     # --- LLM ---------------------------------------------------------------
-    llm_provider: str = "anthropic"  # anthropic | openai
+    llm_provider: str = "anthropic"  # anthropic | openai | local
+
+    # The local provider runs a Hugging Face instruct model on this machine, so
+    # citation validity and abstention can be measured with no API key. 3B is
+    # the smallest size that follows the numbered-citation format reliably
+    # enough for the measurement to be about the pipeline rather than about the
+    # model's inability to count. Swap it for anything with a chat template.
+    local_model: str = "Qwen/Qwen2.5-3B-Instruct"
     anthropic_model: str = "claude-sonnet-5"
     openai_model: str = "gpt-4o-mini"
     llm_max_tokens: int = 1024
