@@ -531,6 +531,51 @@ before a single question had been verified by hand.
 
 ---
 
+## 18. Trying to avoid the API key, and failing on purpose
+
+**Symptom.** Not a bug -- an experiment that did not work, recorded because the
+result is the argument for the decision it settled.
+
+Three of the answer-level metrics turned out not to need a paid judge at all,
+and moving them to a local generator worked (see the local provider in
+`sift/llm.py`). So the obvious next question was whether the same trick would
+retire the last two: run RAGAS itself against a local model and stop needing a
+key at all.
+
+**What happened.** The pipeline ran -- dataset built, answers generated, metrics
+instantiated, all eight jobs dispatched for two questions. Then every one of
+them failed:
+
+    Exception raised in Job[0]: TimeoutError()
+    ... Job[1] through Job[7], identically
+
+RAGAS times each job out at 180 seconds, which is generous for a hosted judge
+and nowhere near enough for a 3B model on an M1 Pro. Raising the timeout to 1800
+seconds and cutting the run to a *single* question still had not finished after
+ten minutes.
+
+**Why it settles the question.** The full run is 32 answerable questions across
+four metrics, and faithfulness alone issues roughly one call per claim in each
+answer. At the observed rate that is hours, not minutes, per run -- for a gate
+that is supposed to run on a pull request.
+
+So the objection to a local judge is no longer only the one worth making on
+principle (a small model grading its own output produces numbers that look
+authoritative and mean nothing, which is the exact failure this repository
+documents seventeen times). It is also simply not fast enough to finish. Two
+independent reasons, one of them now measured rather than asserted.
+
+The experimental branch was reverted rather than left in place. Code that cannot
+do the job it was added for is worse than no code, because the next person reads
+its presence as evidence the path works -- the same reasoning that removed the
+warm-up pass in #15.
+
+**What it leaves.** `faithfulness` and `answer_relevancy` require an API key,
+and that is now a measured constraint rather than an assumption. Everything else
+in this project runs without one.
+
+---
+
 ## Still open
 
 - **q017 retrieval miss.** "What change did the rule make to references to the
